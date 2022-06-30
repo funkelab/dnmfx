@@ -1,59 +1,92 @@
 import numpy as np
-import os
-import cv2
+import zarr
+#import shutil
 from scipy.optimize import linear_sum_assignment
 
 
-def evaluate(reconstruction_path, ground_truth_path, num_components):
+def evaluate(reconstruction_path, ground_truth_path, num_components,
+             num_frames, show_component_errors=True):
 
     cell_matrix = np.zeros((num_components, num_components))
-    trace_matrx = np.zeros((num_components, num_components))
-
-    ground_truth_traces = np.load(f"{ground_truth_path}/traces/traces.npy")
-    num_frames = ground_truth_traces.shape[1]
-    reconstructed_traces = np.load(f"{reconstruction_path}/traces.npy").reshape(num_components,num_frames)
-
-    # make up background trace to match dimensionality
-    ground_truth_traces = np.concatenate((ground_truth_traces,
-                                    np.zeros((1, num_frames))), axis=0)
-
+    trace_matrix = np.zeros((num_components, num_components))
+    '''
+    # copy background to the `components` directory
+    shutil.copytree(f"{ground_truth_path}/background.zarr",
+            f"{ground_truth_path}/components/component{num_components-1}.zarr")
+    '''
     # find the L2 norm of reconstruction vs. ground truth
-    for i in range(num_components):        
-        reconstructed_cell = cv2.imread(f"{reconstruction_path}/cell{i}.jpg").flatten()
-        reconstructed_trace = reconstructed_traces[i, :]
+    for i in range(num_components):
+        if i == num_components - 1:
+            ground_truth_trace = np.zeros(num_frames)
+            background_path = f"{ground_truth_path}/background.zarr"
+            ground_truth_component = zarr.load(background_path).flatten()
+        else:
+            ground_truth_trace_path = f"{ground_truth_path}/traces/trace{i}.zarr"
+            ground_truth_trace = zarr.load(ground_truth_trace_path)
+            ground_truth_component_path = \
+                f"{ground_truth_path}/components/component{i}.zarr"
+            ground_truth_component = \
+                    zarr.load(ground_truth_component_path).flatten()
 
         for j in range(num_components):
-            ground_truth_cell = cv2.imread(f"{ground_truth_path}/singles/cell{j}.jpg").flatten()
-            ground_truth_trace = traces_grdtru[j, :]
+            reconstructed_trace_path = \
+            f"{reconstruction_path}/traces/trace{j}.zarr"
+            reconstructed_trace = zarr.load(reconstructed_trace_path)
+            reconstructed_component_path = \
+            f"{reconstruction_path}/components/component{j}.zarr"
+            reconstructed_component = \
+            zarr.load(reconstructed_component_path).flatten()
 
-            cell_matrix[i][j] = np.linalg.norm(reconstructed_cell - ground_truth_cell)
-            trace_matrix[i][j] = np.linalg.norm(reconstructed_trace - ground_truth_cell)
-
+            cell_matrix[i][j] = np.linalg.norm(reconstructed_component -
+                                               ground_truth_component)
+            trace_matrix[i][j] = np.linalg.norm(reconstructed_trace -
+                                                ground_truth_trace)
     # find optimal assigment
     row_indices, col_indices = linear_sum_assignment(cell_matrix)
-    
     # matched pairs of reconstruction and ground truth components
     matched_pairs = list(zip(row_indices, col_indices))
-    
-    cell_reconstruction_error = cell_matrix[row_indices, col_indices].sum()
-    trace_reconstruction_error = trace_mtx[row_indices, col_indices].sum()
+
+    total_cell_reconstruction_error = cell_matrix[row_indices, col_indices].sum()
+    total_trace_reconstruction_error = trace_matrix[row_indices, col_indices].sum()
 
     results = {
                 "matched_pairs": matched_pairs,
-                "cell_reconstruction_error": cell_reconstruction_error,
-                "trace_reconstruction_error": trace_reconstruction_error
+                "total_cell_reconstruction_error": total_cell_reconstruction_error,
+                "total_trace_reconstruction_error": total_trace_reconstruction_error
               }
+
+    if show_component_errors:
+        component_reconstruction_errors = get_component_reconstruction_error(
+                                                matched_pairs,
+                                                reconstruction_path,
+                                                ground_truth_path
+                                            )
+        results["component_errors"] = component_reconstruction_errors
 
     return results
 
+def get_component_reconstruction_error(matched_pairs, reconstruction_path,
+                                       ground_truth_path):
+    component_reconstruction_errors = {}
+    for matched_pair in matched_pairs:
+        id_ground_truth, id_reconstruction = matched_pair
+        ground_truth_component = \
+        zarr.load(f"{ground_truth_path}/components/component{id_ground_truth}.zarr")
+        reconstructed_component = \
+        zarr.load(f"{reconstruction_path}/components/component{id_reconstruction}.zarr")
+        reconstruction_error = np.linalg.norm(reconstructed_component -
+                                              ground_truth_component)
+        component_reconstruction_errors[id_ground_truth] = reconstruction_error
+
+    return component_reconstruction_errors
 
 if __name__ == "__main__":
-
     reconstruction_path = "reconstruction"
     ground_truth_path = "ground_truth"
 
     num_components = 11
-
-    results = evaluate(reconstruction_path, groud_truth_path, num_components)
+    num_frames = 100
+    results = evaluate(reconstruction_path, ground_truth_path, num_components,
+                       num_frames)
     print(results)
 
