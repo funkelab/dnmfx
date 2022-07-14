@@ -74,19 +74,3 @@ def make_directories(fitting_parameters):
                              overwrite=True)
 
     return component_group, trace_group
-
-
-if __name__ == "__main__":
-
-    home_path = "/home/luk@hhmi.org/DNMFX/dnmfx"
-    save_reconstruction = True
-    max_iteration = 1000
-    min_loss = 1e-3
-    batch_size = 10
-    step_size = 1e-1
-    l1_W = 0
-    num_components = 11
-    print_iterations = 10
-    H, W, log = fit(home_path, save_reconstruction, max_iteration, min_loss,
-                    batch_size, step_size, l1_W, num_components,
-                    print_iterations)
