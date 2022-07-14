@@ -7,7 +7,7 @@ from scipy.optimize import linear_sum_assignment
 def evaluate(reconstruction_path, ground_truth_path, num_components,
              num_frames, show_component_errors=True):
 
-    cell_matrix = np.zeros((num_components, num_components))
+    component_matrix = np.zeros((num_components, num_components))
     trace_matrix = np.zeros((num_components, num_components))
     '''
     # copy background to the `components` directory
@@ -37,21 +37,21 @@ def evaluate(reconstruction_path, ground_truth_path, num_components,
             reconstructed_component = \
             zarr.load(reconstructed_component_path).flatten()
 
-            cell_matrix[i][j] = np.linalg.norm(reconstructed_component -
+            component_matrix[i][j] = np.linalg.norm(reconstructed_component -
                                                ground_truth_component)
             trace_matrix[i][j] = np.linalg.norm(reconstructed_trace -
                                                 ground_truth_trace)
     # find optimal assigment
-    row_indices, col_indices = linear_sum_assignment(cell_matrix)
+    row_indices, col_indices = linear_sum_assignment(component_matrix)
     # matched pairs of reconstruction and ground truth components
     matched_pairs = list(zip(row_indices, col_indices))
 
-    total_cell_reconstruction_error = cell_matrix[row_indices, col_indices].sum()
+    total_component_reconstruction_error = component_matrix[row_indices, col_indices].sum()
     total_trace_reconstruction_error = trace_matrix[row_indices, col_indices].sum()
 
     results = {
                 "matched_pairs": matched_pairs,
-                "total_cell_reconstruction_error": total_cell_reconstruction_error,
+                "total_component_reconstruction_error": total_component_reconstruction_error,
                 "total_trace_reconstruction_error": total_trace_reconstruction_error
               }
 

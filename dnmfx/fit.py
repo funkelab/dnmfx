@@ -59,9 +59,9 @@ def save_component_traces(H, W, num_components, fitting_parameters):
         component = W[i, :].reshape(fitting_parameters.image_size,
                                     fitting_parameters.image_size)
         trace = H[:, i]
-        # save reconstructed cell components
+        # save reconstructed components
         components[f"component{i}"] = zarr.array(component)
-        # save reconstructed cell traces
+        # save reconstructed traces
         traces[f"trace{i}"] = zarr.array(trace)
 
 
