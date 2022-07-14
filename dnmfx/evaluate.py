@@ -79,14 +79,3 @@ def get_component_reconstruction_error(matched_pairs, reconstruction_path,
         component_reconstruction_errors[id_ground_truth] = reconstruction_error
 
     return component_reconstruction_errors
-
-if __name__ == "__main__":
-    reconstruction_path = "reconstruction"
-    ground_truth_path = "ground_truth"
-
-    num_components = 11
-    num_frames = 100
-    results = evaluate(reconstruction_path, ground_truth_path, num_components,
-                       num_frames)
-    print(results)
-
