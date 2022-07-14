@@ -1,7 +1,5 @@
 import jax
-import sys
 import jax.numpy as jnp
-import optax
 import zarr
 import math
 import numpy as np
@@ -10,27 +8,20 @@ import random
 from preprocess import create_components
 import funlib.geometry as fg
 
-def dnmf(components, max_iterations, data, batch_size):
 
-    H, W, B = initialize(components, data, 42)
+def dnmf(components, max_iterations, data, batch_size, random_seed):
+
+    H, W, B = initialize(components, data, random_seed)
     num_frames = data.shape[0]
     image_size = int(math.sqrt(data.shape[1]))
 
     for i in range(max_iterations):
-
         print(f'Num Iteration - {i}')
         component = random.sample(components, 1)[0]
         frame_indices = random.sample(list(range(num_frames)), batch_size)
-
-        for frame_index in frame_indices:
-
-            frame = data[frame_index, :].reshape((image_size, image_size))
-            x = extract(component, frame)
-            intersect = get_total_intersect(component, frame)
-            grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B,
-                                              x, frame_index, component.index,
-                                              intersect)
-            H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
+        grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B, data,
+                                          frame_indices, component, image_size)
+        H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
 
     return H, W, B
 
@@ -50,22 +41,33 @@ def initialize(components, data, random_seed):
     return H, W, B
 
 
-def create_batch(component, frame_indices, image_size, H, W, B):
+def update(H, W, B, grad_H, grad_W, grad_B, component_index):
 
+    H[component_index].at[:].add(-grad_H[component_index])
+    W[component_index].at[:].add(-grad_W[component_index])
+    B[component_index].at[:].add(-grad_B[component_index])
+
+    return H, W, B
+
+
+def loss(H, W, B, data, frame_indices, component, image_size):
+
+    x_batch = [extract(component, frame_index, data, image_size)
+               for frame_index in frame_indices]
     x_hat_batch = []
-    x_batch = [extract(component, frame_index) for frame_index in frame_indices]
 
     for frame_index in frame_indices:
         frame = data[frame_index, :].reshape((image_size, image_size))
-        total_intersect = get_total_intersect(component, frame)
-        x_hat_batch.append(estimate(H, W, B, frame_index, component.index,
-                                    total_intersect))
+        x_hat_batch.append(estimate(H, W, B, frame,
+                                    frame_index, component))
 
-    return x_batch, x_hat_batch
+    return jnp.linalg.norm(jnp.asarray(x_batch) -
+                           jnp.asarray(x_hat_batch)).sum()
 
 
-def extract(component, frame):
+def extract(component, frame_index, data, image_size):
 
+    frame = data[frame_index, :].reshape((image_size, image_size))
     extracted = jnp.zeros(component.bounding_box.shape)
     start_col, start_row = component.bounding_box.get_begin()
     end_col, end_row = component.bounding_box.get_end()
@@ -77,12 +79,11 @@ def extract(component, frame):
     return extracted.flatten()
 
 
-def estimate(H, W, B, frame_index, component_index, intersect):
+def estimate(H, W, B, frame, frame_index, component):
 
-    estimated = B[component_index] +\
-                W[component_index][frame_index] * H[component_index]
-
-    return estimated + intersect
+    return B[component.index] + \
+           W[component.index][frame_index] * H[component.index] + \
+           get_total_intersect(component, frame)
 
 
 def get_total_intersect(component, frame):
@@ -90,33 +91,19 @@ def get_total_intersect(component, frame):
     total_intersect = jnp.zeros((component.bounding_box.shape))
     for overlapping_component in component.overlapping_components:
         total_intersect.at[:, :].add(get_intersect(component.bounding_box,
-                                overlapping_component.bounding_box,
-                                frame))
+                                     overlapping_component.bounding_box,
+                                     frame))
 
     return total_intersect.flatten()
 
 
-def loss(H, W, B, x, frame_index, component_index, intersect):
+def get_intersect(bounding_box_A, bounding_box_B, frame):
 
-    x_hat = estimate(H, W, B, frame_index, component_index, intersect)
+    intersect = jnp.zeros(bounding_box_A.shape)
+    intersect_roi = bounding_box_A.intersect(bounding_box_B)
 
-    return jnp.linalg.norm(x - x_hat).sum()
-
-
-def update(H, W, B, grad_H, grad_W, grad_B, component_index):
-
-    H[component_index].at[:].add(-grad_H[component_index])
-    W[component_index].at[:].add(-grad_W[component_index])
-    B[component_index].at[:].add(-grad_B[component_index])
-
-    return H, W, B
-
-
-def get_intersect(componentA, componentB, frame):
-
-    intersect = jnp.zeros(componentA.shape)
-    intersect_roi = componentA.intersect(componentB)
-    row_shift, col_shift = componentA.get_end()[1], componentA.get_begin()[0]
+    row_shift = bounding_box_A.get_end()[1]
+    col_shift = bounding_box_A.get_begin()[0]
 
     start_col, start_row = intersect_roi.get_begin()
     end_col, end_row = intersect_roi.get_end()
@@ -128,21 +115,26 @@ def get_intersect(componentA, componentB, frame):
     return intersect
 
 
-
 if __name__ == "__main__":
 
     bounding_boxes = np.load("bounding_boxes.npy")
-    bounding_boxes[2, 1] = 516
-    bounding_boxes[9, 1] = 516
+    #bounding_boxes[2, 1] = 516
+    #bounding_boxes[9, 1] = 516
+    bounding_boxes[3, 1] = 516
+    bounding_boxes[11, 1] = 514
+
     bounding_boxes = [fg.Roi((x_b, y_b), (x_e-x_b, y_e-y_b))
                       for x_b, x_e, y_b, y_e in bounding_boxes]
 
     components = create_components(bounding_boxes)
-    max_iterations = 10
+    max_iterations = 1000
     batch_size = 10
     data_path = "ground_truth/ensemble/sequence.zarr"
     data = jnp.asarray(zarr.load(data_path))
     num_frames, image_size, _ = data.shape
     data = data.reshape(num_frames, image_size**2)
-    dnmf(components, max_iterations, data, batch_size)
-
+    random_seed = 42
+    H, W, B = dnmf(components, max_iterations, data, batch_size, random_seed)
+    np.save("H.npy", H)
+    np.save("W.npy", W)
+    np.save("B.npy", B)
