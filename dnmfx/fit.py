@@ -53,16 +53,27 @@ def fit(home_path, save_reconstruction, max_iteration, min_loss, batch_size,
 
 def save_component_traces(H, W, num_components, fitting_parameters):
 
-    components = zarr.group(store=f"{home_path}/reconstruction/components")
-    traces = zarr.group(store=f"{home_path}/reconstruction/traces")
+    components, traces = make_directories(fitting_parameters)
     for i in range(num_components):
         component = W[i, :].reshape(fitting_parameters.image_size,
                                     fitting_parameters.image_size)
         trace = H[:, i]
         # save reconstructed components
-        components[f"component{i}"] = zarr.array(component)
+        components[f"component{i}.zarr"] = zarr.array(component)
         # save reconstructed traces
-        traces[f"trace{i}"] = zarr.array(trace)
+        traces[f"trace{i}.zarr"] = zarr.array(trace)
+
+
+def make_directories(fitting_parameters):
+
+    reconstruction_path = f"{fitting_parameters.home_path}/reconstruction"
+    reconstruction_store = zarr.DirectoryStore(reconstruction_path)
+    component_group = zarr.group(store=f"{reconstruction_path}/components",
+                                 overwrite=True)
+    trace_group = zarr.group(store=f"{reconstruction_path}/traces",
+                             overwrite=True)
+
+    return component_group, trace_group
 
 
 if __name__ == "__main__":
