@@ -5,7 +5,7 @@ import math
 import numpy as np
 from jax import jit
 import random
-from preprocess import create_components
+from dnmfx.preprocess import create_components
 import funlib.geometry as fg
 
 
@@ -113,28 +113,3 @@ def get_intersect(bounding_box_A, bounding_box_B, frame):
             intersect.at[row-row_shift, col-col_shift].set(frame[row, col])
 
     return intersect
-
-
-if __name__ == "__main__":
-
-    bounding_boxes = np.load("bounding_boxes.npy")
-    #bounding_boxes[2, 1] = 516
-    #bounding_boxes[9, 1] = 516
-    bounding_boxes[3, 1] = 516
-    bounding_boxes[11, 1] = 514
-
-    bounding_boxes = [fg.Roi((x_b, y_b), (x_e-x_b, y_e-y_b))
-                      for x_b, x_e, y_b, y_e in bounding_boxes]
-
-    components = create_components(bounding_boxes)
-    max_iterations = 1000
-    batch_size = 10
-    data_path = "ground_truth/ensemble/sequence.zarr"
-    data = jnp.asarray(zarr.load(data_path))
-    num_frames, image_size, _ = data.shape
-    data = data.reshape(num_frames, image_size**2)
-    random_seed = 42
-    H, W, B = dnmf(components, max_iterations, data, batch_size, random_seed)
-    np.save("H.npy", H)
-    np.save("W.npy", W)
-    np.save("B.npy", B)
