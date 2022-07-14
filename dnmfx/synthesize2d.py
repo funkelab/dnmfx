@@ -82,7 +82,7 @@ def generate_traces(parameters):
     return all_traces
 
 
-def generate_component_coordinates(coordinates):
+def generate_component_coordinates(parameters):
 
     component_coordinates = []
 
@@ -148,21 +148,3 @@ def generate_trace(parameters):
 
     return signal
 
-
-if __name__ == "__main__":
-    random_seeds = {"numpy": 88, "random": 2001}
-    trace_parameters = { "possion_lam": 2,
-                     "gauss_mu": 0,
-                     "gauss_sigma": 0.1}
-
-    image_size = 512
-    cell_size  = 64
-    num_cells = 12
-    num_frames = 10
-    noise_magnitudes = {"background": 0.4, "extra": 10}
-    cell_centers = [(0, 1.6), (5, 3.6), (4, 4), (7, 5.7), (0, 1), (0, 2),
-                    (1, 3), (3, 0), (5, 3), (6, 2), (6, 5), (7, 5)]
-    parameters = set_parameters(image_size, cell_size, num_cells, num_frames,
-                                random_seeds, trace_parameters, cell_centers,
-                                noise_magnitudes)
-    create_2D_synthetic_dataset(parameters)
