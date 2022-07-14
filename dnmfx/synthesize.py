@@ -301,28 +301,3 @@ def set_seeds(parameters):
     np.random.seed(parameters.np_seed)
     random.seed(parameters.random_seed)
 
-
-if __name__ == "__main__":
-    random_seeds = {"numpy": 88, "random": 2001}
-    trace_params = {
-                        "possion_lam": 2,
-                        "gauss_mu": 0,
-                        "gauss_sigma": 0.1
-                    }
-    img_size = 512
-    cell_size = 64
-    num_cells = 12
-    num_frames = 100
-
-    # background noise magnitude ranges from 0 (no noise) to 1 (very noisy)
-    # extra noise magnitude >= 0 with 0 being no extra noise
-    noise_magnitudes = {"background": 0.4, "extra": 10}
-    home_path = "/home/luk@hhmi.org/DNMFX/dnmfx"
-
-    # hard-coded cell positions with three overlapping cells
-    overlap_cell_centers = [(0, 1.6), (5, 3.6), (4, 4), (7, 5.7)]
-    other_cell_centers = [(0, 1), (0, 2), (1, 3), (3, 0), (5, 3), (6, 2),
-                          (6, 5), (7, 5)]
-    cell_centers = overlap_cell_centers + other_cell_centers
-    synthesize(img_size, cell_size, num_cells, num_frames, random_seeds,
-               trace_params, cell_centers, noise_magnitudes, home_path)
