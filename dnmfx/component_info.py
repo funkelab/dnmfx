@@ -1,9 +1,8 @@
 from scipy import spatial
 import math
-import funlib.geometry as fg
-import numpy as np
 
-class Component():
+
+class ComponentInfo():
     '''Represents a single component by its bounding box in the volume and a
     unique index.
 
@@ -23,8 +22,8 @@ class Component():
         self.overlapping_components = []
 
 
-def create_components(bounding_boxes):
-    '''Create a list of components from bounding boxes.
+def create_component_info(bounding_boxes):
+    '''Create a list of ComponentInfo from bounding boxes.
 
     Args:
 
@@ -33,7 +32,7 @@ def create_components(bounding_boxes):
 
     Returns:
 
-        A list of :class:`Component`, where each component stores a list of
+        A list of :class:`ComponentInfo`, where each component stores a list of
         other components it overlaps with.
     '''
 
@@ -103,23 +102,3 @@ def get_diagonal_length(component):
     diagonal_length_squared = sum((end - begin)**2)
 
     return math.sqrt(diagonal_length_squared)
-
-
-# TODO: put into unit test
-if __name__ == "__main__":
-
-    bounding_boxes = np.load("bounding_boxes.npy")
-
-    bounding_boxes = [fg.Roi((x_b, y_b), (x_e-x_b, y_e-y_b))
-                      for x_b, x_e, y_b, y_e in bounding_boxes]
-
-    components = create_components(bounding_boxes)
-
-    for component in components:
-        print(f"component index: {component.index}")
-        print(f"component bounding box: {component.bounding_box}")
-        print(f'component shape: {component.bounding_box.shape}')
-        for overlapping_component in component.overlapping_components:
-            print(f"overlapping component index: {overlapping_component.index}")
-            print(f"overlapping component bounding box: {overlapping_component.bounding_box}")
-
