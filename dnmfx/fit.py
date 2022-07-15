@@ -1,76 +1,74 @@
-import zarr
 import numpy as np
 from nmfx import parameters, nmf
+from .io import read_dataset
 
 
-class FittingParameters():
+def fit(
+        data_path,
+        max_iteration,
+        min_loss,
+        batch_size,
+        step_size,
+        l1_weight,
+        log_every=1):
+    """Use distributed NMF to estimate the components and traces for a dataset
+    given as a zarr container.
 
-    def __init__(self, home_path, save_reconstruction, max_iteration, min_loss,
-                 batch_size, step_size, l1_W, num_components,
-                 print_iterations):
+    Args:
 
-        self.nmf_parameters = parameters.Parameters()
-        self.nmf_parameters.max_iter = max_iteration
-        self.nmf_parameters.min_loss = min_loss  # min_diff
-        self.nmf_parameters.batch_size = batch_size
-        self.nmf_parameters.step_size = step_size
-        self.nmf_parameters.l1_W = l1_W
+        data_path (string):
+            The path to the zarr container containing the dataset. Should have
+            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
+            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
+            the number of components and `d` the number of spatial dimensions.
+            `component_locations` stores the begin and end of each component,
+            i.e., `component_locations[1, 0, :]` is the begin of component `1`
+            and `component_locations[1, 1, :]` is its end.
 
-        self.image_size = None
-        self.num_frames = None
-        self.home_path = home_path
-        self.save_reconstruction = save_reconstruction
-        self.num_components = num_components
-        self.print_iterations = print_iterations
-        self.initial_values = None
+        max_iteration (int):
+            The maximum number of iterations to optimize for.
 
+        min_loss (float):
+            The loss value at which to stop the optimization.
 
-def fit(home_path, save_reconstruction, max_iteration, min_loss, batch_size,
-        step_size, l1_W, num_components, print_iterations):
+        batch_size (int):
+            The number of frames to consider at once for each component during
+            the stochastic gradient estimation.
 
-    fitting_parameters = FittingParameters(home_path, save_reconstruction,
-                                           max_iteration, min_loss, batch_size,
-                                           step_size, l1_W, num_components,
-                                           print_iterations)
-    data_path = f"{home_path}/ground_truth/ensemble/sequence.zarr"
-    X = zarr.load(data_path)
-    fitting_parameters.num_frames, fitting_parameters.image_size, _ = X.shape
-    X = X.reshape(fitting_parameters.num_frames,
-                  fitting_parameters.image_size**2)
-    # Initialize H, W, X
-    H = np.random.randn(fitting_parameters.num_frames, num_components)
-    W = np.random.randn(num_components, fitting_parameters.image_size**2)
-    fitting_parameters.initial_values = {"H": H, "W": W}
-    H, W, log = nmf(X, num_components, fitting_parameters.nmf_parameters,
-                    fitting_parameters.print_iterations,
-                    fitting_parameters.initial_values)
+        step_size (float):
+            The size of the gradient updates.
 
-    if fitting_parameters.save_reconstruction:
-        save_component_traces(H, W, num_components, fitting_parameters)
+        l1_weight (float):
+            The influence of the L1 regularizer on the components and traces.
+
+        log_every (int):
+            How often to print a log statement during optimization.
+
+    Returns:
+
+        A dictionary with "H" (the estimated components), "W" (the estimated
+        traces), and "log" (statistics per iteration).
+    """
+
+    nmf_parameters = parameters.Parameters()
+    nmf_parameters.max_iter = max_iteration
+    nmf_parameters.min_loss = min_loss
+    nmf_parameters.batch_size = batch_size
+    nmf_parameters.step_size = step_size
+    nmf_parameters.l1_W = l1_weight
+
+    dataset = read_dataset(data_path)
+
+    # Initialize H, W
+    H = np.random.randn(dataset.num_frames, dataset.num_components)
+    W = np.random.randn(dataset.num_components, dataset.frame_roi.get_size())
+
+    initial_values = {"H": H, "W": W}
+    H, W, log = nmf(
+        dataset.sequence,
+        dataset.num_components,
+        nmf_parameters,
+        log_every,
+        initial_values)
 
     return {"H": H, "W": W, "log": log}
-
-
-def save_component_traces(H, W, num_components, fitting_parameters):
-
-    components, traces = make_directories(fitting_parameters)
-    for i in range(num_components):
-        component = W[i, :].reshape(fitting_parameters.image_size,
-                                    fitting_parameters.image_size)
-        trace = H[:, i]
-        # save reconstructed components
-        components[f"component{i}.zarr"] = zarr.array(component)
-        # save reconstructed traces
-        traces[f"trace{i}.zarr"] = zarr.array(trace)
-
-
-def make_directories(fitting_parameters):
-
-    reconstruction_path = f"{fitting_parameters.home_path}/reconstruction"
-    reconstruction_store = zarr.DirectoryStore(reconstruction_path)
-    component_group = zarr.group(store=f"{reconstruction_path}/components",
-                                 overwrite=True)
-    trace_group = zarr.group(store=f"{reconstruction_path}/traces",
-                             overwrite=True)
-
-    return component_group, trace_group
