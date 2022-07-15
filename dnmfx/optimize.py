@@ -1,36 +1,52 @@
+import datetime
 import jax
 import jax.numpy as jnp
-import zarr
 import math
-import numpy as np
-from jax import jit
 import random
-from dnmfx.preprocess import create_components
-import funlib.geometry as fg
 
 
-def dnmf(components, max_iterations, data, batch_size, random_seed):
+class Parameters:
 
-    H, W, B = initialize(components, data, random_seed)
-    num_frames = data.shape[0]
-    image_size = int(math.sqrt(data.shape[1]))
+    def __init__(
+            self,
+            max_iteration=1000,
+            min_loss=1e-4,
+            batch_size=32,
+            step_size=1e-3,
+            l1_weight=0.1):
+
+        self.max_iteration = max_iteration
+        self.min_loss = min_loss
+        self.batch_size = batch_size
+        self.step_size = step_size
+        self.l1_weight = l1_weight
+
+
+def dnmf(sequence, component_info, parameters, random_seed=None):
+
+    if random_seed is None:
+        random_seed = datetime.now()
+
+    H, W, B = initialize(component_info, sequence, random_seed)
+    num_frames = sequence.shape[0]
+    image_size = int(math.sqrt(sequence.shape[1]))
 
     for i in range(max_iterations):
         print(f'Num Iteration - {i}')
-        component = random.sample(components, 1)[0]
+        component = random.sample(component_info, 1)[0]
         frame_indices = random.sample(list(range(num_frames)), batch_size)
-        grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B, data,
+        grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B, sequence,
                                           frame_indices, component, image_size)
         H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
 
     return H, W, B
 
 
-def initialize(components, data, random_seed):
+def initialize(component_info, sequence, random_seed):
 
-    num_frames = data.shape[0]
-    num_components = len(components)
-    component_size = components[0].bounding_box.get_size()
+    num_frames = sequence.shape[0]
+    num_components = len(component_info)
+    component_size = component_info[0].bounding_box.get_size()
 
     key = jax.random.PRNGKey(random_seed)
 
@@ -50,14 +66,14 @@ def update(H, W, B, grad_H, grad_W, grad_B, component_index):
     return H, W, B
 
 
-def loss(H, W, B, data, frame_indices, component, image_size):
+def loss(H, W, B, sequence, frame_indices, component, image_size):
 
-    x_batch = [extract(component, frame_index, data, image_size)
+    x_batch = [extract(component, frame_index, sequence, image_size)
                for frame_index in frame_indices]
     x_hat_batch = []
 
     for frame_index in frame_indices:
-        frame = data[frame_index, :].reshape((image_size, image_size))
+        frame = sequence[frame_index, :].reshape((image_size, image_size))
         x_hat_batch.append(estimate(H, W, B, frame,
                                     frame_index, component))
 
@@ -65,9 +81,9 @@ def loss(H, W, B, data, frame_indices, component, image_size):
                            jnp.asarray(x_hat_batch)).sum()
 
 
-def extract(component, frame_index, data, image_size):
+def extract(component, frame_index, sequence, image_size):
 
-    frame = data[frame_index, :].reshape((image_size, image_size))
+    frame = sequence[frame_index, :].reshape((image_size, image_size))
     extracted = jnp.zeros(component.bounding_box.shape)
     start_col, start_row = component.bounding_box.get_begin()
     end_col, end_row = component.bounding_box.get_end()
