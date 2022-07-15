@@ -1,5 +1,5 @@
-import numpy as np
-from nmfx import parameters, nmf
+from .component_info import create_component_info
+from .optimize import dnmf, Parameters
 from .io import read_dataset
 
 
@@ -50,25 +50,20 @@ def fit(
         traces), and "log" (statistics per iteration).
     """
 
-    nmf_parameters = parameters.Parameters()
-    nmf_parameters.max_iter = max_iteration
-    nmf_parameters.min_loss = min_loss
-    nmf_parameters.batch_size = batch_size
-    nmf_parameters.step_size = step_size
-    nmf_parameters.l1_W = l1_weight
+    parameters = Parameters()
+    parameters.max_iter = max_iteration
+    parameters.min_loss = min_loss
+    parameters.batch_size = batch_size
+    parameters.step_size = step_size
+    parameters.l1_W = l1_weight
 
     dataset = read_dataset(data_path)
+    component_info = create_component_info(dataset.bounding_boxes)
 
-    # Initialize H, W
-    H = np.random.randn(dataset.num_frames, dataset.num_components)
-    W = np.random.randn(dataset.num_components, dataset.frame_roi.get_size())
-
-    initial_values = {"H": H, "W": W}
-    H, W, log = nmf(
+    H, W, log = dnmf(
         dataset.sequence,
-        dataset.num_components,
-        nmf_parameters,
-        log_every,
-        initial_values)
+        component_info,
+        parameters,
+        log_every)
 
     return {"H": H, "W": W, "log": log}
