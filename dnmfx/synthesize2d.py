@@ -73,6 +73,22 @@ def create_synthetic_dataset(parameters):
     return dataset
 
 
+def write_dataset(dataset, dataset_name, parameters):
+
+    store = zarr.DirectoryStore(dataset_name)
+    g0 = zarr.group(store=store)
+    singular_component_group = g0.create_group("singular_components")
+
+    for component_index, component in enumerate(dataset.singular_components):
+        singular_component_group[component_index] = component.reshape(
+                            (parameters.num_frames, parameters.image_size, -1))
+
+    ensembled_component_group = g0.create_group("ensembled_components")
+    for frame_index, component in enumerate(dataset.ensembled_components):
+        ensembled_component_group[frame_index] = component.reshape((
+                            parameters.image_size, -1))
+
+
 def generate_traces(parameters):
 
     all_traces = np.array([])
