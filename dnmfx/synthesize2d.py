@@ -1,8 +1,6 @@
 import numpy as np
 import zarr
 import random
-import os
-import cv2
 from sklearn.datasets import make_blobs
 
 
