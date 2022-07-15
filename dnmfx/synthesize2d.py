@@ -8,14 +8,16 @@ from sklearn.datasets import make_blobs
 
 class Dataset():
 
-    def __init__(self, components, traces, background, noises,
-                       ensemble, centers):
-        self.components = components
+    def __init__(self, ensembled_components, singular_components, traces,
+                 background, noises, ensemble, centers):
+        self.ensembled_components = ensembled_components
+        self.singular_components = singular_components
         self.traces = traces
         self.background = background
         self.noises = noises
         self.ensemble = ensemble
         self.centers = centers
+
 
 class Parameters():
 
@@ -59,16 +61,18 @@ def create_synthetic_dataset(parameters):
     traces = generate_traces(parameters)
 
     component_coordinates = generate_component_coordinates(parameters)
-    components = genenerate_components(parameters, traces,
-                                       component_coordinates)
-
+    singular_components = generate_singular_components(parameters, traces,
+                                                       component_coordinates)
+    ensembled_components = generate_ensembled_components(parameters, traces,
+                                                         component_coordinates)
     background = generate_background(parameters)
     noises = generate_noises(parameters)
-    ensemble = generate_ensemble(parameters, noises, background, components)
+    ensemble = generate_ensemble(parameters, noises, background,
+                                 ensembled_components)
 
     # after creating all elements..
-    dataset = Dataset(components, traces, background, noises,
-                      ensemble, centers)
+    dataset = Dataset(singular_components, ensembled_components, traces,
+                      background, noises, ensemble, centers)
     return dataset
 
 
@@ -115,9 +119,30 @@ def generate_noises(parameters):
             for frame_index in range(parameters.num_frames)]
 
 
-def genenerate_components(parameters, traces, component_coordinates):
+def generate_singular_components(parameters, traces, component_coordinates):
 
-    components = []
+    '''Create a list of components of shape (num_frames, component_dimension)
+    '''
+
+    singular_components = []
+    for component_index, coordinates in enumerate(component_coordinates):
+        component_indices = [int(i * parameters.image_size + j)
+                             for i, j in coordinates]
+        component = np.zeros((parameters.num_frames, parameters.image_size**2))
+        for frame_index in range(parameters.num_frames):
+            color = int(traces[:, frame_index][component_index] * 256)
+            component[frame_index][component_indices] += color
+        singular_components.append(component)
+
+    return singular_components
+
+
+def generate_ensembled_components(parameters, traces, component_coordinates):
+
+    '''Create a list of length number of frames that contains component of shape
+    (component_dimension, ), i.e. a list of all components at each time step
+    '''
+    ensembled_components = []
     for frame_index in range(parameters.num_frames):
         component_frame = np.zeros(parameters.image_size**2)
         for component_index, component in enumerate(component_coordinates):
@@ -125,14 +150,14 @@ def genenerate_components(parameters, traces, component_coordinates):
                                  for i, j in component]
             color = int(traces[:, frame_index][component_index] * 256)
             component_frame[component_indices] += color
-        components.append(component_frame)
+        ensembled_components.append(component_frame)
 
-    return components
+    return ensembled_components
 
 
-def generate_ensemble(parameters, noises, background, components):
+def generate_ensemble(parameters, noises, background, ensembled_components):
 
-    return [np.array([background[i] + noises[t][i] + components[t][i] 
+    return [np.array([background[i] + noises[t][i] + ensembled_components[t][i]
                       for i in range(parameters.image_size**2)])
             for t in range(parameters.num_frames)]
 
