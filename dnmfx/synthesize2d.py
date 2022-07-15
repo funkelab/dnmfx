@@ -2,20 +2,20 @@ import numpy as np
 import zarr
 import random
 from sklearn.datasets import make_blobs
+import funlib.geometry as fg
 
 
 class Dataset():
 
     def __init__(self, ensembled_components, singular_components, traces,
-                 background, noises, ensemble, centers):
+                 background, noises, ensemble, bounding_boxes):
         self.ensembled_components = ensembled_components
         self.singular_components = singular_components
         self.traces = traces
         self.background = background
         self.noises = noises
         self.ensemble = ensemble
-        self.centers = centers
-
+        self.bounding_boxes = bounding_boxes
 
 class Parameters():
 
@@ -54,8 +54,7 @@ def set_parameters(image_size, cell_size, num_cells, num_frames,
 
 def create_synthetic_dataset(parameters):
 
-    centers = np.array([(r*parameters.cell_size, c*parameters.cell_size) for
-                        (r, c) in parameters.cell_centers])
+    bounding_boxes = generate_bounding_boxes(parameters)
     traces = generate_traces(parameters)
 
     component_coordinates = generate_component_coordinates(parameters)
@@ -70,7 +69,7 @@ def create_synthetic_dataset(parameters):
 
     # after creating all elements..
     dataset = Dataset(singular_components, ensembled_components, traces,
-                      background, noises, ensemble, centers)
+                      background, noises, ensemble, bounding_boxes)
     return dataset
 
 
@@ -102,6 +101,16 @@ def generate_component_coordinates(parameters):
         component_coordinates.append(single_component_coordinates)
 
     return component_coordinates
+
+
+def generate_bounding_boxes(parameters):
+
+    centers = np.array([(int(r*parameters.cell_size),
+                         int(c*parameters.cell_size))
+                         for (r, c) in parameters.cell_centers])
+    return [fg.Roi((int(x-parameters.cell_size/2),
+                    int(y-parameters.cell_size/2)),
+            (parameters.cell_size, parameters.cell_size)) for x, y in centers]
 
 
 def generate_background(parameters):
