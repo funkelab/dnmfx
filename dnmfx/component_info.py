@@ -89,7 +89,7 @@ def find_overlapping_components(component, components, kd_tree):
 def construct_components(bounding_boxes):
 
     return [
-        Component(bounding_box, box_index)
+        ComponentInfo(bounding_box, box_index)
         for box_index, bounding_box in enumerate(bounding_boxes)
     ]
 
