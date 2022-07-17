@@ -5,34 +5,19 @@ import math
 import random
 
 
-class Parameters:
-
-    def __init__(
-            self,
-            max_iteration=1000,
-            min_loss=1e-4,
-            batch_size=32,
-            step_size=1e-3,
-            l1_weight=0.1):
-
-        self.max_iteration = max_iteration
-        self.min_loss = min_loss
-        self.batch_size = batch_size
-        self.step_size = step_size
-        self.l1_weight = l1_weight
-
-
-def dnmf(sequence, component_info, parameters, random_seed=None):
+def dnmf(sequence, component_info, parameters, log_every=10, random_seed=None):
 
     if random_seed is None:
         random_seed = datetime.now()
 
     H, W, B = initialize(component_info, sequence, random_seed)
     num_frames = sequence.shape[0]
-    image_size = int(math.sqrt(sequence.shape[1]))
+    image_dims = sequence.shape[1:]
 
     for i in range(max_iterations):
-        print(f'Num Iteration - {i}')
+
+        if parameters.
+
         component = random.sample(component_info, 1)[0]
         frame_indices = random.sample(list(range(num_frames)), batch_size)
         grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B, sequence,

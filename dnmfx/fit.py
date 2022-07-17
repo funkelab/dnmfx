@@ -1,5 +1,6 @@
 from .component_info import create_component_info
-from .optimize import dnmf, Parameters
+from .optimize import dnmf
+from .parameters import Parameters
 from .io import read_dataset
 
 
