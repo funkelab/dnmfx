@@ -1,43 +1,23 @@
-import numpy as np
-import jax.numpy as jnp
-from jax.tree_util import register_pytree_node_class
-
-
-@register_pytree_node_class
 class IterationLog():
-
-    """
-    Construct the iteration loss matrix with shape (k, T), where k is the number of
-    connected components, T the batch size, whose each element (e.g. x) is the
-    reconstruction loss of a sampled component in a given connected component at a
-    time frame.
-
-            t_0  t_1  .    .   .   t_T
-    cc_0 |   x                           |
-    cc_1 |                               |
-    .    |                               |
-    .    |                               |
-    .    |                               |
-    cc_k |                               |
+    """The loss (and possibly other stats in the future) for a single
+    iteration.
     """
 
-    def __init__(self, num_connected_components, batch_size):
-        self.iteration_loss = np.ones((num_connected_components,
-                                        batch_size))
+    def __init__(self, iteration, loss):
+        self.iteration = iteration
+        self.loss = loss
 
-    def tree_flatten(self):
-        children = (self.iteration_loss)
-        aux_data = None
-        return (children, aux_data)
 
-    @classmethod
-    def tree_unflatten(cls, aux_data, children):
-        return cls(*children)
+class Log():
+    """The log of the optimization procedure.
 
-class AggregateLog():
-
+    Contains one instance of :class:`IterationLog` per iteration.
     """
-    Stack iteration loss matrix to form aggregate loss
-    """
+
     def __init__(self):
-        aggregate_loss = np.array([])
+
+        self.iteration_logs = []
+
+    def add_loss(self, iteration, loss):
+
+        self.iteration_logs.append(IterationLog(iteration, loss))

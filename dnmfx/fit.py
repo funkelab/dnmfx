@@ -11,9 +11,7 @@ def fit(
         batch_size,
         step_size,
         l1_weight,
-        num_cells,
-        num_frames,
-        component_dims,
+        random_seed=None,
         log_every=1):
     """Use distributed NMF to estimate the components and traces for a dataset
     given as a zarr container.
@@ -45,6 +43,10 @@ def fit(
         l1_weight (float):
             The influence of the L1 regularizer on the components and traces.
 
+        random_seed (int):
+            A random seed for the initialization of `H` and `W`. If not given,
+            a different random seed will be used each time.
+
         log_every (int):
             How often to print a log statement during optimization.
 
@@ -69,10 +71,7 @@ def fit(
         dataset.sequence,
         component_description,
         parameters,
-        num_cells,
-        num_frames,
-        component_dims,
         log_every=10,
-        random_seed=88)
+        random_seed=random_seed)
 
     return {"H": H, "W": W, "B": B, "log": log}
