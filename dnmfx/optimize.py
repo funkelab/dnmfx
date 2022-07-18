@@ -3,7 +3,7 @@ import jax
 import jax.numpy as jnp
 import math
 import random
-
+from .log import IterationLog, AggregateLog
 
 def dnmf(sequence,
         component_info,
@@ -19,20 +19,35 @@ def dnmf(sequence,
 
     H, W, B = initialize(num_cells, num_frames, component_dims, random_seed)
     connected_components = get_connected_components(component_info)
+    aggregate_log = AggregateLog()
 
     for i in range(parameters.max_iteration):
+
         print(f'Iteration {i}')
-        for _, connected_component in connected_components.items():
+        iteration_log = IterationLog(num_cells, parameters.batch_size)
+
+        for connnect_component_index, connected_component in \
+                                                enumerate(connected_components):
             component = random.sample(connected_component, 1)[0]
             frame_indices = random.sample(list(range(num_frames)),
                                           parameters.batch_size)
-            grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B,
-                                              sequence,
-                                              frame_indices,
-                                              component)
+            iteration_log, grad_H, grad_W, grad_B = jax.grad(
+                                        loss,
+                                        argnums=(0,1,2),
+                                        has_aux=True)(
+                                        H, W, B,
+                                        sequence,
+                                        frame_indices,
+                                        component,
+                                        connected_component_index,
+                                        iteration_log)
             H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
 
-    return H, W, B
+        if i % 10 == 0:
+            aggregate_log.aggregate_loss.stack(aggregate_loss,
+                                           iteration_log.iteration_loss)
+
+    return H, W, B, aggregate_log
 
 
 def get_connected_components(component_info):
@@ -74,24 +89,26 @@ def update(H, W, B, grad_H, grad_W, grad_B, component_index):
     return H, W, B
 
 
-def loss(H, W, B, sequence, frame_indices, component):
+def loss(
+        H, W, B,
+        sequence,
+        frame_indices,
+        component,
+        connected_component_index,
+        iteration_log):
 
-    x_batch = [extract(component, frame_index, sequence)
-               for frame_index in frame_indices]
-    x_hat_batch = []
-
-    for frame_index in frame_indices:
+    for t, frame_index in enumerate(frame_indices):
         frame = sequence[frame_index, :, :]
-        x_hat_batch.append(estimate(H, W, B, frame,
-                                    frame_index, component))
+        x = extract(component, frame)
+        x_hat = estimate(H, W, B, frame, frame_index, component))
+        diff = jnp.linalg.norm(x-x_hat)
+        iteration_log.iteration_loss[connected_component_index][t] = diff
 
-    return jnp.linalg.norm(jnp.asarray(x_batch) -
-                           jnp.asarray(x_hat_batch)).sum()
+    return (iteration_log.iteration_loss[connected_component_index, :].sum(),
+            iteration_log)
 
+def extract(component, frame):
 
-def extract(component, frame_index, sequence):
-
-    frame = sequence[frame_index, :, :]
     extracted = jnp.zeros(component.bounding_box.shape)
     start_col, start_row = component.bounding_box.get_begin()
     end_col, end_row = component.bounding_box.get_end()
