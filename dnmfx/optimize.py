@@ -51,20 +51,52 @@ def dnmf(sequence,
 
 
 def get_connected_components(component_info):
+    sorted_component_info = sorted(component_info, key=lambda x:
+            len(x.overlapping_components))
+    return run_depth_first_search(sorted_component_info,
+                                  sorted_component_info,
+                                  sorted_component_info[0],
+                                  [],
+                                  [])
 
-    sorted_component_info = sorted(component_info,
-                               key=lambda x: len(x.overlapping_components),
-                               reverse=True)
-    connected_components = {}
-    for info in sorted_component_info:
-        if len(info.overlapping_components) == 0:
-            connected_components[info.index] = [info]
+def run_depth_first_search(unvisited,
+                           component_info,
+                           component,
+                           connected_component,
+                           connected_components):
+    index = component.index
+    if component in unvisited:
+        unvisited.remove(component)
+        overlaps = component.overlapping_components
+
+        if len(overlaps) == 0:
+            connected_components.append([component])
         else:
-            if info not in connected_components.values():
-                connected_components[info.index] = info.overlapping_components + \
-                                                   [info]
-                for c in connected_components[info.index]:
-                    sorted_component_info.remove(c)
+            all_overlaps_added = True
+            for overlap in overlaps:
+                if overlap not in connected_component:
+                    all_overlaps_added = False
+                    connected_component.append(overlap)
+                    run_depth_first_search(unvisited,
+                                           component_info,
+                                           overlap,
+                                           connected_component,
+                                           connected_components)
+            if all_overlaps_added:
+                connected_components.append(connected_component)
+                if len(unvisited) != 0:
+                    run_depth_first_search(unvisited,
+                                           component_info,
+                                           unvisited[0],
+                                           [],
+                                           connected_components)
+    elif len(unvisited) != 0:
+        connected_components.append(connected_component)
+        run_depth_first_search(unvisited,
+                               component_info,
+                               unvisited[0],
+                               [],
+                               connected_components)
 
     return connected_components
 
