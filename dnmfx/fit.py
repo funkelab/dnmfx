@@ -11,6 +11,9 @@ def fit(
         batch_size,
         step_size,
         l1_weight,
+        num_cells,
+        num_frames,
+        component_dims,
         log_every=1):
     """Use distributed NMF to estimate the components and traces for a dataset
     given as a zarr container.
@@ -61,10 +64,14 @@ def fit(
     dataset = read_dataset(data_path)
     component_info = create_component_info(dataset.bounding_boxes)
 
-    H, W, log = dnmf(
+    H, W, B, log = dnmf(
         dataset.sequence,
         component_info,
         parameters,
-        log_every)
+        num_cells,
+        num_frames,
+        component_dims,
+        log_every=10,
+        random_seed=88)
 
-    return {"H": H, "W": W, "log": log}
+    return {"H": H, "W": W, "B": B, "log": log}
