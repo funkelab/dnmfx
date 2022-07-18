@@ -26,7 +26,10 @@ def dnmf(sequence,
         print(f'Iteration {i}')
         iteration_log = IterationLog(num_cells, parameters.batch_size)
 
-        for connnect_component_index, connected_component in \
+        if jnp.mean(iteration_log.iteration_loss) < min_loss:
+            break
+
+        for connected_component_index, connected_component in \
                                                 enumerate(connected_components):
             component = random.sample(connected_component, 1)[0]
             frame_indices = random.sample(list(range(num_frames)),
