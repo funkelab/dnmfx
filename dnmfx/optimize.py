@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import jax
 import jax.numpy as jnp
 import math
@@ -15,7 +15,7 @@ def dnmf(sequence,
         random_seed=None):
 
     if random_seed is None:
-        random_seed = datetime.now()
+        random_seed = datetime.now().toordinal()
 
     H, W, B = initialize(num_cells, num_frames, component_dims, random_seed)
     connected_components = get_connected_components(component_info)
