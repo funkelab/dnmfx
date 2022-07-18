@@ -2,32 +2,65 @@ from datetime import datetime
 import jax
 import jax.numpy as jnp
 import math
+import numpy as np
 import random
 from .log import IterationLog, AggregateLog
 
 def dnmf(sequence,
-        component_info,
+        component_metadata,
         parameters,
-        num_cells,
-        num_frames,
-        component_dims,
         log_every=10,
         random_seed=None):
+    """Perform distributed NMF on the given sequence.
+
+    Args:
+
+        sequence (array-like, shape `(t, [z,] y, x)`):
+
+            The raw data (usually referred to as 'X') to factorize into `X = H@W`,
+            where `H` is an array of the estimated components and `W` is their
+            activity over time.
+
+        component_metadata (list of :class:`ComponentMetadata`):
+
+            The bounding boxes and indices of the components to estimate.
+
+        parameters (:class:`Parameters`):
+
+            Parameters to control the optimization.
+
+        log_every (int):
+
+            How often to print iteration statistics.
+
+        random_seed (int):
+
+            A random seed for the initialization of `H` and `W`. If not given, a
+            different random seed will be used each time.
+    """
+
+    num_frames = sequence.shape[0]
+    num_components = len(component_info)
 
     if random_seed is None:
         random_seed = datetime.now().toordinal()
 
-    H, W, B = initialize(num_cells, num_frames, component_dims, random_seed)
-    connected_components = get_connected_components(component_info)
+    component_size = None
+    for metadata in component_metadata:
+        size = metadata.bounding_box.get_size()
+        if component_size is not None:
+            assert component_size == size, \
+                "Only components of the same size are supported for now"
+        else:
+            component_size = size
+
+    H, W, B = initialize(num_components, num_frames, component_size, random_seed)
+    connected_components = get_connected_components(component_metadata)
     aggregate_log = AggregateLog()
 
     for i in range(parameters.max_iteration):
 
-        print(f'Iteration {i}')
-        iteration_log = IterationLog(num_cells, parameters.batch_size)
-
-        if jnp.mean(iteration_log.iteration_loss) < min_loss:
-            break
+        iteration_log = IterationLog(num_components, parameters.batch_size)
 
         for connected_component_index, connected_component in \
                                                 enumerate(connected_components):
@@ -46,9 +79,11 @@ def dnmf(sequence,
                                         iteration_log)
             H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
 
-        if i % 10 == 0:
-            aggregate_log.aggregate_loss.stack(aggregate_loss,
-                                           iteration_log.iteration_loss)
+        aggregate_log.aggregate_loss.stack(aggregate_loss,
+                                       iteration_log.iteration_loss)
+
+        if jnp.mean(iteration_log.iteration_loss) < parameters.min_loss:
+            break
 
     return H, W, B, aggregate_log
 
@@ -104,13 +139,13 @@ def run_depth_first_search(unvisited,
     return connected_components
 
 
-def initialize(num_cells, num_frames, component_dims, random_seed):
+def initialize(num_components, num_frames, component_size, random_seed):
 
     key = jax.random.PRNGKey(random_seed)
 
-    H = [jax.random.normal(key, component_dims) for i in range(num_cells)]
-    W = [jax.random.normal(key, (num_frames,)) for i in range(num_cells)]
-    B = [jax.random.normal(key, component_dims) for i in range(num_cells)]
+    H = [jax.random.normal(key, component_size) for i in range(num_components)]
+    W = [jax.random.normal(key, (num_frames,)) for i in range(num_components)]
+    B = [jax.random.normal(key, component_size) for i in range(num_components)]
 
     return H, W, B
 
@@ -135,8 +170,8 @@ def loss(
     for t, frame_index in enumerate(frame_indices):
         frame = sequence[frame_index, :, :]
         x = extract(component, frame)
-        x_hat = estimate(H, W, B, frame, frame_index, component))
-        diff = jnp.linalg.norm(x-x_hat)
+        x_hat = estimate(H, W, B, frame, frame_index, component)
+        diff = jnp.linalg.norm(x - x_hat)
         iteration_log.iteration_loss[connected_component_index][t] = diff
 
     return (iteration_log.iteration_loss[connected_component_index, :].sum(),
