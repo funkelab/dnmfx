@@ -22,11 +22,15 @@ def dnmf(sequence,
 
     for i in range(max_iterations):
 
-        component = random.sample(component_info, 1)[0]
-        frame_indices = random.sample(list(range(num_frames)), batch_size)
-        grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B, sequence,
-                                          frame_indices, component, image_size)
-        H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
+        for _, connected_component in connected_components,items():
+            component = random.sample(connected_component, 1)[0]
+            frame_indices = random.sample(list(range(num_frames)), batch_size)
+            grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B,
+                                              sequence,
+                                              frame_indices,
+                                              component,
+                                              image_size)
+            H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
 
     return H, W, B
 
