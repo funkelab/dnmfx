@@ -5,18 +5,22 @@ import math
 import random
 
 
-def dnmf(sequence, component_info, parameters, log_every=10, random_seed=None):
+def dnmf(sequence,
+        component_info,
+        parameters,
+        num_cells,
+        num_frames,
+        component_dims,
+        log_every=10,
+        random_seed=None):
 
     if random_seed is None:
         random_seed = datetime.now()
 
-    H, W, B = initialize(component_info, sequence, random_seed)
-    num_frames = sequence.shape[0]
-    image_dims = sequence.shape[1:]
+    H, W, B = initialize(num_cells, num_frames, component_dims, random_seed)
+    connected_components = get_connected_components(component_info)
 
     for i in range(max_iterations):
-
-        if parameters.
 
         component = random.sample(component_info, 1)[0]
         frame_indices = random.sample(list(range(num_frames)), batch_size)
@@ -27,17 +31,32 @@ def dnmf(sequence, component_info, parameters, log_every=10, random_seed=None):
     return H, W, B
 
 
-def initialize(component_info, sequence, random_seed):
+def get_connected_components(component_info):
 
-    num_frames = sequence.shape[0]
-    num_components = len(component_info)
-    component_size = component_info[0].bounding_box.get_size()
+    sorted_component_info = sorted(component_info,
+                               key=lambda x: len(x.overlapping_components),
+                               reverse=True)
+    connected_components = {}
+    for info in sorted_component_info:
+        if len(info.overlapping_components) == 0:
+            connected_components[info.index] = [info]
+        else:
+            if info not in connected_components.values():
+                connected_components[info.index] = info.overlapping_components + \
+                                                   [info]
+                for c in connected_components[info.index]:
+                    sorted_component_info.remove(c)
+
+    return connected_components
+
+
+def initialize(num_cells, num_frames, component_dims, random_seed):
 
     key = jax.random.PRNGKey(random_seed)
 
-    H = [jax.random.normal(key, (component_size,)) for i in range(num_components)]
-    W = [jax.random.normal(key, (num_frames,)) for i in range(num_components)]
-    B = [jax.random.normal(key, (component_size,)) for i in range(num_components)]
+    H = [jax.random.normal(key, component_dims) for i in range(num_cells)]
+    W = [jax.random.normal(key, (num_frames,)) for i in range(num_cells)]
+    B = [jax.random.normal(key, component_dims) for i in range(num_cells)]
 
     return H, W, B
 
