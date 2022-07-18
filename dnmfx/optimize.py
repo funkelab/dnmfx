@@ -20,16 +20,16 @@ def dnmf(sequence,
     H, W, B = initialize(num_cells, num_frames, component_dims, random_seed)
     connected_components = get_connected_components(component_info)
 
-    for i in range(max_iterations):
-
-        for _, connected_component in connected_components,items():
+    for i in range(parameters.max_iteration):
+        print(f'Iteration {i}')
+        for _, connected_component in connected_components.items():
             component = random.sample(connected_component, 1)[0]
-            frame_indices = random.sample(list(range(num_frames)), batch_size)
+            frame_indices = random.sample(list(range(num_frames)),
+                                          parameters.batch_size)
             grad_H, grad_W, grad_B = jax.grad(loss, argnums=(0,1,2))(H, W, B,
                                               sequence,
                                               frame_indices,
-                                              component,
-                                              image_size)
+                                              component)
             H, W, B = update(H, W, B, grad_H, grad_W, grad_B, component.index)
 
     return H, W, B
@@ -74,14 +74,14 @@ def update(H, W, B, grad_H, grad_W, grad_B, component_index):
     return H, W, B
 
 
-def loss(H, W, B, sequence, frame_indices, component, image_size):
+def loss(H, W, B, sequence, frame_indices, component):
 
-    x_batch = [extract(component, frame_index, sequence, image_size)
+    x_batch = [extract(component, frame_index, sequence)
                for frame_index in frame_indices]
     x_hat_batch = []
 
     for frame_index in frame_indices:
-        frame = sequence[frame_index, :].reshape((image_size, image_size))
+        frame = sequence[frame_index, :, :]
         x_hat_batch.append(estimate(H, W, B, frame,
                                     frame_index, component))
 
@@ -89,9 +89,9 @@ def loss(H, W, B, sequence, frame_indices, component, image_size):
                            jnp.asarray(x_hat_batch)).sum()
 
 
-def extract(component, frame_index, sequence, image_size):
+def extract(component, frame_index, sequence):
 
-    frame = sequence[frame_index, :].reshape((image_size, image_size))
+    frame = sequence[frame_index, :, :]
     extracted = jnp.zeros(component.bounding_box.shape)
     start_col, start_row = component.bounding_box.get_begin()
     end_col, end_row = component.bounding_box.get_end()
