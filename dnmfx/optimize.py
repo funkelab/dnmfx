@@ -141,7 +141,7 @@ def loss(
 
 def extract(component, frame):
 
-    extracted = jnp.zeros(component.bounding_box.shape)
+    extracted = jnp.zeros(component.bounding_box.shape, dtype=jnp.float32)
     start_col, start_row = component.bounding_box.get_begin()
     end_col, end_row = component.bounding_box.get_end()
 
@@ -161,7 +161,7 @@ def estimate(H, W, B, frame, frame_index, component):
 
 def get_total_intersect(component, frame):
 
-    total_intersect = jnp.zeros((component.bounding_box.shape))
+    total_intersect = jnp.zeros(component.bounding_box.shape, dtype=jnp.float32)
     for overlapping_component in component.overlapping_components:
         total_intersect.at[:, :].add(get_intersect(component.bounding_box,
                                      overlapping_component.bounding_box,
@@ -172,7 +172,7 @@ def get_total_intersect(component, frame):
 
 def get_intersect(bounding_box_A, bounding_box_B, frame):
 
-    intersect = jnp.zeros(bounding_box_A.shape)
+    intersect = jnp.zeros(bounding_box_A.shape, dtype=jnp.float32)
     intersect_roi = bounding_box_A.intersect(bounding_box_B)
 
     row_shift = bounding_box_A.get_end()[1]
