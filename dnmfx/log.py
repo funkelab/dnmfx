@@ -36,8 +36,5 @@ class IterationLog():
 
 class AggregateLog():
 
-    def __init__(self, iteration_loss):
-        if aggregate_loss == None:
-            aggregate_loss = iteration_loss
-        else:
-            aggregate_loss = np.stack((aggregate_loss, iteration_loss))
+    def __init__(self):
+        aggregate_loss = np.array([])
