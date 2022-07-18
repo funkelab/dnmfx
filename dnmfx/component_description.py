@@ -2,8 +2,8 @@ from scipy import spatial
 import math
 
 
-class ComponentInfo():
-    '''Represents a single component by its bounding box in the volume and a
+class ComponentDescription():
+    '''Describes a single component by its bounding box in the volume and a
     unique index.
 
     Args:
@@ -22,8 +22,8 @@ class ComponentInfo():
         self.overlapping_components = []
 
 
-def create_component_info(bounding_boxes):
-    '''Create a list of ComponentInfo from bounding boxes.
+def create_component_description(bounding_boxes):
+    '''Create a list of ComponentDescription from bounding boxes.
 
     Args:
 
@@ -32,8 +32,8 @@ def create_component_info(bounding_boxes):
 
     Returns:
 
-        A list of :class:`ComponentInfo`, where each component stores a list of
-        other components it overlaps with.
+        A list of :class:`ComponentDescription`, where each component stores a
+        list of other components it overlaps with.
     '''
 
     # create components from bounding boxes
@@ -89,7 +89,7 @@ def find_overlapping_components(component, components, kd_tree):
 def construct_components(bounding_boxes):
 
     return [
-        ComponentInfo(bounding_box, box_index)
+        ComponentDescription(bounding_box, box_index)
         for box_index, bounding_box in enumerate(bounding_boxes)
     ]
 

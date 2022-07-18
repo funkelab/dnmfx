@@ -1,4 +1,4 @@
-from .component_info import create_component_info
+from .component_description import create_component_description
 from .optimize import dnmf
 from .parameters import Parameters
 from .io import read_dataset
@@ -62,11 +62,12 @@ def fit(
     parameters.l1_W = l1_weight
 
     dataset = read_dataset(data_path)
-    component_info = create_component_info(dataset.bounding_boxes)
+    component_description = \
+        create_component_description(dataset.bounding_boxes)
 
     H, W, B, log = dnmf(
         dataset.sequence,
-        component_info,
+        component_description,
         parameters,
         num_cells,
         num_frames,

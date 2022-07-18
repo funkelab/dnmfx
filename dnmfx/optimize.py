@@ -40,7 +40,7 @@ def dnmf(sequence,
     """
 
     num_frames = sequence.shape[0]
-    num_components = len(component_info)
+    num_components = len(component_description)
 
     if random_seed is None:
         random_seed = datetime.now().toordinal()
@@ -88,17 +88,17 @@ def dnmf(sequence,
     return H, W, B, aggregate_log
 
 
-def get_connected_components(component_info):
-    sorted_component_info = sorted(component_info, key=lambda x:
+def get_connected_components(component_description):
+    sorted_component_description = sorted(component_description, key=lambda x:
             len(x.overlapping_components))
-    return run_depth_first_search(sorted_component_info,
-                                  sorted_component_info,
-                                  sorted_component_info[0],
+    return run_depth_first_search(sorted_component_description,
+                                  sorted_component_description,
+                                  sorted_component_description[0],
                                   [],
                                   [])
 
 def run_depth_first_search(unvisited,
-                           component_info,
+                           component_description,
                            component,
                            connected_component,
                            connected_components):
@@ -116,7 +116,7 @@ def run_depth_first_search(unvisited,
                     all_overlaps_added = False
                     connected_component.append(overlap)
                     run_depth_first_search(unvisited,
-                                           component_info,
+                                           component_description,
                                            overlap,
                                            connected_component,
                                            connected_components)
@@ -124,14 +124,14 @@ def run_depth_first_search(unvisited,
                 connected_components.append(connected_component)
                 if len(unvisited) != 0:
                     run_depth_first_search(unvisited,
-                                           component_info,
+                                           component_description,
                                            unvisited[0],
                                            [],
                                            connected_components)
     elif len(unvisited) != 0:
         connected_components.append(connected_component)
         run_depth_first_search(unvisited,
-                               component_info,
+                               component_description,
                                unvisited[0],
                                [],
                                connected_components)
