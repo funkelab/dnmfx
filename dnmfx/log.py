@@ -36,5 +36,8 @@ class IterationLog():
 
 class AggregateLog():
 
+    """
+    Stack iteration loss matrix to form aggregate loss
+    """
     def __init__(self):
         aggregate_loss = np.array([])
