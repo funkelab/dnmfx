@@ -22,7 +22,7 @@ class IterationLog():
     """
 
     def __init__(self, num_connected_components, batch_size):
-        self.iteration_loss = np.zeros((num_connected_components,
+        self.iteration_loss = np.ones((num_connected_components,
                                         batch_size))
 
     def tree_flatten(self):
