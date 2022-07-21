@@ -70,7 +70,6 @@ def dnmf(
         component_index = random.randint(0, num_components - 1)
         component_description = component_descriptions[component_index]
         component_bounding_box = component_description.bounding_box
-        component_indices = (component_index,)
 
         # pick a random subset of frames
         frame_indices = random.sample(
@@ -78,18 +77,17 @@ def dnmf(
             parameters.batch_size)
 
         # gather the sequence data for those components/frames
-        x = extract(sequence, frame_indices, component_bounding_box)
-
-        # gather the relevant parts of H, W, and B
-        h_logits = H_logits[component_indices, :]
-        w_slices = (tuple(frame_indices), component_indices)
-        w_logits = W_logits[w_slices]
-        w_logits = w_logits.reshape(parameters.batch_size, 1)
-        b_logits = B_logits[component_indices, :]
+        x = get_x(sequence, frame_indices, component_bounding_box)
 
         # compute the current loss and gradient
-        loss, (grad_h_logits, grad_w_logits, grad_b_logits) = \
-            l2_loss_grad(h_logits, w_logits, b_logits, x)
+        loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
+            l2_loss_grad(
+                H_logits,
+                W_logits,
+                B_logits,
+                x,
+                component_description,
+                frame_indices)
 
         # log the loss
         log.add_loss(i, loss)
@@ -99,24 +97,19 @@ def dnmf(
             break
 
         # update current estimate
-        h_logits, w_logits, b_logits = update(
-            h_logits,
-            w_logits,
-            b_logits,
-            grad_h_logits,
-            grad_w_logits,
-            grad_b_logits,
+        H_logits, W_logits, B_logits = update(
+            H_logits,
+            W_logits,
+            B_logits,
+            grad_H_logits,
+            grad_W_logits,
+            grad_B_logits,
             parameters.step_size)
-
-        # replace global estimates with updates
-        H_logits = H_logits.at[component_indices, :].set(h_logits)
-        W_logits = W_logits.at[w_slices].set(w_logits.flatten())
-        B_logits = B_logits.at[component_indices, :].set(b_logits)
 
     return sigmoid(H_logits), sigmoid(W_logits), sigmoid(B_logits), log
 
 
-def extract(sequence, frames, bounding_box):
+def get_x(sequence, frames, bounding_box):
 
     slices = bounding_box.to_slices()
     x = jnp.array([sequence[(t,) + slices] for t in frames])
