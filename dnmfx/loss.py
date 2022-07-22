@@ -34,7 +34,7 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
     i = component_description.index
     bb_i = component_description.bounding_box
 
-    w = sigmoid(W_logits[frames][i])
+    w = sigmoid(W_logits[frames, i])
     h = sigmoid(H_logits[i])
     b = sigmoid(B_logits[i])
 
@@ -49,13 +49,18 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         intersection_in_c_i = intersection - bb_i.get_begin()
         intersection_in_c_j = intersection - bb_j.get_begin()
 
-        slices_i = intersection_in_c_i.to_slices()
-        slices_j = intersection_in_c_j.to_slices()
+        slices_i = (slice(None),) + intersection_in_c_i.to_slices()
+        slices_j = (j,) + intersection_in_c_j.to_slices()
 
-        w = sigmoid(W_logits[frames][j])
-        h = sigmoid(H_logits[j][slices_j])
-        b = sigmoid(B_logits[j][slices_j])
+        H_logits = H_logits.reshape(-1, *bb_i.shape)
+        B_logits = B_logits.reshape(-1, *bb_i.shape)
 
-        x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
+        w = sigmoid(W_logits[frames, j])
+        h = sigmoid(H_logits[slices_j])
+        b = sigmoid(B_logits[slices_j])
+
+        x_hat = x_hat.reshape(-1, *bb_i.shape)
+        x_hat = x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
 
     return x_hat
+
