@@ -72,9 +72,9 @@ def dnmf(
         component_bounding_box = component_description.bounding_box
 
         # pick a random subset of frames
-        frame_indices = random.sample(
+        frame_indices = tuple(random.sample(
             list(range(num_frames)),
-            parameters.batch_size)
+            parameters.batch_size))
 
         # gather the sequence data for those components/frames
         x = get_x(sequence, frame_indices, component_bounding_box)
@@ -113,7 +113,7 @@ def get_x(sequence, frames, bounding_box):
 
     slices = bounding_box.to_slices()
     x = jnp.array([sequence[(t,) + slices] for t in frames])
-    x = x.reshape(len(frames), -1)
+    x = x.reshape(-1, *bounding_box.shape)
 
     return x
 
