@@ -57,11 +57,11 @@ def fit(
     """
 
     parameters = Parameters()
-    parameters.max_iter = max_iteration
+    parameters.max_iteration = max_iteration
     parameters.min_loss = min_loss
     parameters.batch_size = batch_size
     parameters.step_size = step_size
-    parameters.l1_W = l1_weight
+    parameters.l1_weight = l1_weight
 
     dataset = read_dataset(data_path)
     component_description = \
