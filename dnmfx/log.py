@@ -11,8 +11,7 @@ class IterationLog():
             grad_B_logits=None,
             H_logits=None,
             W_logits=None,
-            B_logits=None,
-            x_hat_logits=None):
+            B_logits=None):
 
         self.iteration = iteration
         self.loss = loss
@@ -22,7 +21,6 @@ class IterationLog():
         self.H_logits = H_logits
         self.W_logits = W_logits
         self.B_logits = B_logits
-        self.x_hat_logits = x_hat_logits
 
         assert iteration is not None and loss is not None, \
             "Both iteration and loss have to be logged"
@@ -38,23 +36,28 @@ class Log():
 
         self.iteration_logs = []
 
-    def add_loss(self,
-                 iteration,
-                 loss,
-                 H_gradient,
-                 W_gradient,
-                 B_gradient,
-                 H_logits,
-                 W_logits,
-                 B_logits,
-                 x_hat_logits):
+    def log_iteration(self,
+                      iteration,
+                      loss,
+                      log_gradients=False,
+                      H_gradient=None,
+                      W_gradient=None,
+                      B_gradient=None,
+                      H_logits=None,
+                      W_logits=None
+                      B_logits=None):
 
-        self.iteration_logs.append(IterationLog(iteration,
-                                                loss,
-                                                H_gradient,
-                                                W_gradient,
-                                                B_gradient,
-                                                H_logits,
-                                                W_logits,
-                                                B_logits,
-                                                x_hat_logits))
+        if log_gradients:
+
+            assert None not in [H_gradient, W_gradient, B_gradient], \
+                    "Make sure gradients are not None"
+
+            self.iteration_logs.append(IterationLog(iteration,
+                                                    loss,
+                                                    H_gradient,
+                                                    W_gradient,
+                                                    B_gradient,
+                                                    H_logits,
+                                                    W_logits,
+                                                    B_logits))
+        else: self.iteration_logs.append(IterationLog(iteration, loss))
