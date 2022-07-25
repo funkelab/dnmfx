@@ -13,6 +13,10 @@ class TestCaseA(unittest.TestCase):
 
     def test_case_A(self):
 
+        """
+        Checking gradient computation on the simplest test case.
+        """
+
         toy_data = self._generate_caseA_data()
         component_descriptions = \
                         create_component_description(toy_data.bounding_boxes)
@@ -20,24 +24,30 @@ class TestCaseA(unittest.TestCase):
         H, W, B, log = dnmf(toy_data.sequence,
                             component_descriptions,
                             dnmfx_parameters,
-                            log_every=1)
+                            log_every=1,
+                            log_gradients=True,
+                            random_seed=None)
 
         iter_log = log.iteration_logs[0]
-        x_hat_logits = -iter_log.x_hat_logits.reshape(-1,)
-        W_logits = iter_log.W_logits
-        H_logits = iter_log.H_logits
-        B_logits = iter_log.B_logits
+        w_logits = iter_log.W_logits[0][0]
+        h_logits = iter_log.H_logits[0][0]
+        b_logits = iter_log.B_logits[0][0]
 
-        expected_grad_B_logits = \
-                math.e**(-x_hat_logits)/(1 + math.e**(-x_hat_logits))**2
-        expected_grad_H_logits = expected_grad_B_logits * W_logits
-        expected_grad_W_logits = expected_grad_B_logits * H_logits
+        expected_grad_H_logits = \
+                1/(1 + math.e**(-w_logits)) * \
+                math.e**(-h_logits)/(1 + math.e**(-h_logits))**2
 
-        assert abs(iter_log.grad_H_logits) - abs(expected_grad_H_logits) < 1e-8, \
+        expected_grad_W_logits = \
+                1/(1 + math.e**(-h_logits)) * \
+                math.e**(-w_logits)/(1 + math.e**(-w_logits))**2
+
+        expected_grad_B_logits = math.e**(-b_logits)/(1 + math.e**(-b_logits))**2
+
+        assert abs(iter_log.grad_H_logits - expected_grad_H_logits) < 1e-5, \
                 "Partial gradient H wrt. loss matches expectation"
-        assert abs(iter_log.grad_W_logits) - abs(expected_grad_W_logits) < 1e-8, \
+        assert abs(iter_log.grad_W_logits - expected_grad_W_logits) < 1e-5, \
                 "Partial gradient W wrt. loss matches expectation"
-        assert abs(iter_log.grad_B_logits) - abs(expected_grad_B_logits) < 1e-8, \
+        assert abs(iter_log.grad_B_logits - expected_grad_B_logits) < 1e-5, \
                 "Partial gradient B wrt. loss matches expectation"
 
     def _generate_caseA_data(self):
