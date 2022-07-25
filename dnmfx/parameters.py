@@ -1,6 +1,5 @@
-import jax.numpy as jnp
-import numpy as np
 from jax.tree_util import register_pytree_node_class
+
 
 @register_pytree_node_class
 class Parameters():
@@ -31,4 +30,3 @@ class Parameters():
     @classmethod
     def tree_unflatten(cls, aux_data, children):
         return cls(*children)
-
