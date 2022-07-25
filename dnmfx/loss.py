@@ -33,11 +33,12 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
     i = component_description.index
     bb_i = component_description.bounding_box
 
-    w = sigmoid(W_logits[frames, i])
-    h = sigmoid(H_logits[i])
-    b = sigmoid(B_logits[i])
+    w_logits = W_logits[frames, i]
+    h_logits = H_logits[i]
+    b_logits = B_logits[i]
 
-    x_hat = jnp.outer(w, h).reshape(-1, *h.shape) + b
+    x_hat_logits = jnp.outer(w_logits, h_logits).reshape(-1, *h_logits.shape) + \
+                            b_logits
 
     for overlap in component_description.overlapping_components:
 
@@ -54,12 +55,16 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         H_logits = H_logits.reshape(-1, *bb_i.shape)
         B_logits = B_logits.reshape(-1, *bb_i.shape)
 
-        w = sigmoid(W_logits[frames, j])
-        h = sigmoid(H_logits[slices_j])
-        b = sigmoid(B_logits[slices_j])
+        w_logits = W_logits[frames, j]
+        h_logits = H_logits[slices_j]
+        b_logits = B_logits[slices_j]
 
-        x_hat = x_hat.reshape(-1, *bb_i.shape)
-        x_hat = x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
+        x_hat_logits = x_hat_logits.reshape(-1, *bb_i.shape)
+        x_hat_logits = x_hat_logits.at[slices_i].add(
+                    jnp.outer(w_logits, h_logits).reshape(-1, *h_logits.shape) + \
+                    b_logits)
+
+    x_hat = sigmoid(x_hat_logits).reshape(-1, *bb_i.shape)
 
     return x_hat, x_hat_logits, h_logits, w_logits, b_logits
 
