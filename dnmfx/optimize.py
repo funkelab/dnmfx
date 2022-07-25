@@ -80,7 +80,8 @@ def dnmf(
         x = get_x(sequence, frame_indices, component_bounding_box)
 
         # compute the current loss and gradient
-        loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
+        ((loss, (x_hat, x_hat_logits, h_logits, w_logits, b_logits)),
+                (grad_H_logits, grad_W_logits, grad_B_logits)) = \
             l2_loss_grad(
                 H_logits,
                 W_logits,
@@ -90,7 +91,12 @@ def dnmf(
                 frame_indices)
 
         # log the loss
-        log.add_loss(i, loss)
+        log.add_loss(i, loss,
+                    grad_H_logits,
+                    grad_W_logits,
+                    grad_B_logits,
+                    h_logits, w_logits, b_logits,
+                    x_hat_logits)
 
         if loss < parameters.min_loss:
             print(f"Optimization converged ({loss}<{parameters.min_loss})")
