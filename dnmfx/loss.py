@@ -16,18 +16,17 @@ def l2_loss(
     assert len(B_logits.shape) == 2
 
     # get the current estimate for what x would look like (i.e., x_hat)
-    x_hat = get_x_hat(
+    x_hat, x_hat_logits, h_logits, w_logits, b_logits = get_x_hat(
         H_logits,
         W_logits,
         B_logits,
         component_description,
         frame_indices)
 
-    return jnp.linalg.norm(x - x_hat)
+    return (jnp.linalg.norm(x - x_hat), (x_hat, x_hat_logits, h_logits, w_logits, b_logits))
 
 
-l2_loss_grad = jax.value_and_grad(l2_loss, argnums=(0, 1, 2))
-
+l2_loss_grad = jax.value_and_grad(l2_loss, argnums=(0, 1, 2), has_aux=True)
 
 def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
 
@@ -62,5 +61,5 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         x_hat = x_hat.reshape(-1, *bb_i.shape)
         x_hat = x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
 
-    return x_hat
+    return x_hat, x_hat_logits, h_logits, w_logits, b_logits
 
