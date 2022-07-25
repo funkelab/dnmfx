@@ -13,6 +13,7 @@ def dnmf(
         component_descriptions,
         parameters,
         log_every=10,
+        log_gradients=False,
         random_seed=None):
     """Perform distributed NMF on the given sequence.
 
@@ -91,12 +92,19 @@ def dnmf(
                 frame_indices)
 
         # log the loss
-        log.add_loss(i, loss,
-                    grad_H_logits,
-                    grad_W_logits,
-                    grad_B_logits,
-                    h_logits, w_logits, b_logits,
-                    x_hat_logits)
+        if log_gradients:
+            log.log_iteration(
+                        i,
+                        loss,
+                        log_gradients,
+                        grad_H_logits,
+                        grad_W_logits,
+                        grad_B_logits,
+                        H_logits,
+                        W_logits,
+                        B_logits)
+        else:
+            log.log_iteration(i, loss)
 
         if loss < parameters.min_loss:
             print(f"Optimization converged ({loss}<{parameters.min_loss})")
