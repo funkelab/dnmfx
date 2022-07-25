@@ -4,6 +4,7 @@ from .loss import l2_loss_grad
 from .utils import sigmoid
 from datetime import datetime
 from tqdm import tqdm
+import jax
 import jax.numpy as jnp
 import random
 
@@ -65,6 +66,10 @@ def dnmf(
         random_seed)
 
     log = Log()
+    l2_loss_grad_jit = jax.jit(l2_loss_grad,
+                               static_argnames=['component_description'])
+    update_jit = jax.jit(update)
+
     for i in tqdm(range(parameters.max_iteration)):
 
         # pick a random component
@@ -82,7 +87,7 @@ def dnmf(
 
         # compute the current loss and gradient
         loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
-            l2_loss_grad(
+            l2_loss_grad_jit(
                 H_logits,
                 W_logits,
                 B_logits,
@@ -110,7 +115,7 @@ def dnmf(
             break
 
         # update current estimate
-        H_logits, W_logits, B_logits = update(
+        H_logits, W_logits, B_logits = update_jit(
             H_logits,
             W_logits,
             B_logits,
