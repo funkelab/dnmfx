@@ -35,9 +35,11 @@ class Dataset():
         else:
             self.num_frames = sequence.shape[0]
         if background is not None:
-            self.frame_roi = fg.Roi((0,) * self.num_spatial_dims, self.background.shape)
+            self.frame_roi = fg.Roi((0,) * self.num_spatial_dims,
+                                    self.background.shape)
         else:
-            self.frame_roi = fg.Roi((0,) * self.num_spatial_dims, self.sequence.shape[0])
+            self.frame_roi = fg.Roi((0,) * self.num_spatial_dims,
+                                    self.sequence.shape[0])
 
         assert traces.shape[0] == self.num_components, \
             "Traces and components disagree on number of components"
