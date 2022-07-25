@@ -12,7 +12,8 @@ def fit(
         step_size,
         l1_weight,
         random_seed=None,
-        log_every=1):
+        log_every=1,
+        log_gradients=False):
     """Use distributed NMF to estimate the components and traces for a dataset
     given as a zarr container.
 
@@ -71,7 +72,8 @@ def fit(
         dataset.sequence,
         component_description,
         parameters,
-        log_every=10,
-        random_seed=random_seed)
+        log_every,
+        log_gradients,
+        random_seed)
 
     return {"H": H, "W": W, "B": B, "log": log}
