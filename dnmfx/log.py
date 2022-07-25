@@ -4,14 +4,14 @@ class IterationLog():
     """
 
     def __init__(self,
-            iteration,
-            loss,
-            grad_H_logits=None,
-            grad_W_logits=None,
-            grad_B_logits=None,
-            H_logits=None,
-            W_logits=None,
-            B_logits=None):
+                 iteration,
+                 loss,
+                 grad_H_logits=None,
+                 grad_W_logits=None,
+                 grad_B_logits=None,
+                 H_logits=None,
+                 W_logits=None,
+                 B_logits=None):
 
         self.iteration = iteration
         self.loss = loss
@@ -44,11 +44,10 @@ class Log():
                       W_gradient=None,
                       B_gradient=None,
                       H_logits=None,
-                      W_logits=None
+                      W_logits=None,
                       B_logits=None):
 
         if log_gradients:
-
             assert None not in [H_gradient, W_gradient, B_gradient], \
                     "Make sure gradients are not None"
 
@@ -60,4 +59,5 @@ class Log():
                                                     H_logits,
                                                     W_logits,
                                                     B_logits))
-        else: self.iteration_logs.append(IterationLog(iteration, loss))
+        else:
+            self.iteration_logs.append(IterationLog(iteration, loss))
