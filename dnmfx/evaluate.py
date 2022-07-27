@@ -3,9 +3,8 @@ import numpy as np
 from scipy.optimize import linear_sum_assignment
 
 
-def evaluate(H, B, W, dataset_path):
+def evaluate(H, B, W, dataset):
 
-    dataset = read_dataset(dataset_path)
     components = dataset.components     # shape: (k, w, h)
     background = dataset.background     # shape: (k, w, h)
     traces = dataset.traces             # shape: (1, t)
