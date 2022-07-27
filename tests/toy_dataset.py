@@ -13,8 +13,13 @@ class Parameters():
             cell_size,
             num_frames,
             cell_centers,
-            trace_parameters,
-            noise_magnitudes,
+            trace_parameters={
+                            "possion_lam": 2,
+                            "gauss_mu": 0,
+                            "gauss_sigma": 0.1
+                            },
+            noise_magnitudes={"background": 0.1,
+                              "extra": 0.1},
             random_seed=None):
 
         self.image_size = image_size

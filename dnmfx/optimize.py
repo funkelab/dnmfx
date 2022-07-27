@@ -1,3 +1,4 @@
+from .groups import get_groups
 from .initialize import initialize_normal
 from .log import Log
 from .loss import l2_loss_grad
@@ -46,6 +47,8 @@ def dnmf(
 
     num_frames = sequence.shape[0]
     num_components = len(component_descriptions)
+    connected_components = get_groups(component_descriptions)
+    print(f"number of connected components: {len(connected_components)}")
 
     if random_seed is None:
         random_seed = datetime.now().toordinal()
