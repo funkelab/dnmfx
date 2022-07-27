@@ -48,7 +48,8 @@ def dnmf(
     num_frames = sequence.shape[0]
     num_components = len(component_descriptions)
     connected_components = get_groups(component_descriptions)
-    print(f"number of connected components: {len(connected_components)}")
+    num_connected_components = len(connected_components)
+    print(f"number of connected components: {num_connected_components}")
 
     if random_seed is None:
         random_seed = datetime.now().toordinal()
@@ -73,36 +74,54 @@ def dnmf(
                                static_argnames=['component_description'])
     update_jit = jax.jit(update)
 
-    for i in tqdm(range(parameters.max_iteration)):
+    for iteration in tqdm(range(parameters.max_iteration)):
 
-        # pick a random component
-        component_index = random.randint(0, num_components - 1)
-        component_description = component_descriptions[component_index]
-        component_bounding_box = component_description.bounding_box
+        total_loss_per_connected_component = 0
 
-        # pick a random subset of frames
-        frame_indices = tuple(random.sample(
-            list(range(num_frames)),
-            parameters.batch_size))
+        for i in range(num_connected_components):
 
-        # gather the sequence data for those components/frames
-        x = get_x(sequence, frame_indices, component_bounding_box)
+            # pick a random component
+            component_description = random.sample(connected_components[i], 1)[0]
+            component_bounding_box = component_description.bounding_box
 
-        # compute the current loss and gradient
-        loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
-            l2_loss_grad_jit(
+            # pick a random subset of frames
+            frame_indices = tuple(random.sample(
+                list(range(num_frames)),
+                parameters.batch_size))
+
+            # gather the sequence data for those components/frames
+            x = get_x(sequence, frame_indices, component_bounding_box)
+
+            # compute the current loss and gradient
+            loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
+                l2_loss_grad_jit(
+                    H_logits,
+                    W_logits,
+                    B_logits,
+                    x,
+                    component_description,
+                    frame_indices)
+
+            total_loss_per_connected_component += loss
+
+            # update current estimate
+            H_logits, W_logits, B_logits = update_jit(
                 H_logits,
                 W_logits,
                 B_logits,
-                x,
-                component_description,
-                frame_indices)
+                grad_H_logits,
+                grad_W_logits,
+                grad_B_logits,
+                parameters.step_size)
 
-        # log the loss
-        if log_gradients:
+        # log gradients after the 1st iteration
+        average_loss = \
+                float(total_loss_per_connected_component/num_connected_components)
+
+        if iteration == 0 and log_gradients:
             log.log_iteration(
-                        i,
-                        loss,
+                        iteration,
+                        average_loss,
                         log_gradients,
                         grad_H_logits,
                         grad_W_logits,
@@ -110,22 +129,13 @@ def dnmf(
                         H_logits,
                         W_logits,
                         B_logits)
-        else:
-            log.log_iteration(i, loss)
 
-        if loss < parameters.min_loss:
+        if iteration % log_every == 0:
+            log.log_iteration(i, average_loss)
+
+        if average_loss < parameters.min_loss:
             print(f"Optimization converged ({loss}<{parameters.min_loss})")
             break
-
-        # update current estimate
-        H_logits, W_logits, B_logits = update_jit(
-            H_logits,
-            W_logits,
-            B_logits,
-            grad_H_logits,
-            grad_W_logits,
-            grad_B_logits,
-            parameters.step_size)
 
     return sigmoid(H_logits), sigmoid(W_logits), sigmoid(B_logits), log
 
