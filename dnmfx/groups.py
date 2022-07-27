@@ -18,6 +18,8 @@ def get_groups(component_descriptions):
 
     # construct graph
     G = nx.Graph()
+    G.add_nodes_from(connection_dict.keys())
+
     for component_description, overlaps in connection_dict.items():
         connections = list(zip([component_description]*len(overlaps), overlaps))
         G.add_edges_from(connections)
