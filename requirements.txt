@@ -3,4 +3,6 @@ jaxlib
 numpy
 tqdm
 zarr
+scikit-image
+networkx
 git+git://github.com/funkelab/funlib.geometry@cf30e4d74eb860e46de40533c4f8278dc25147b1#egg=funlib.geometry
