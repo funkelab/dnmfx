@@ -40,6 +40,21 @@ def evaluate(H, B, W, dataset):
     B = B.reshape(-1, *components[0].shape)
     W = W.reshape(traces.shape)
 
+    pairings, loss_matrix = pair(components, bounding_boxes, background, H, B, k)
+    mispairings = [(c, c_hat) for c, c_hat in pairings if c != c_hat]
+
+    component_loss = {i: loss_matrix[i , j] for i, j in pairings[:k]}
+    trace_loss = {i: np.linalg.norm(traces[i, :] - W[j, :])
+                  for i, j in pairings[:k]}
+
+    return mispairings, component_loss, trace_loss
+
+
+def pair(components,
+         bounding_boxes,
+         background,
+         H, B, k):
+
     """
     Pair each decomposed component and component background with its corresponding
     ground truth by constructing a loss matrix, in which every element (e.g. x)
@@ -90,26 +105,22 @@ def evaluate(H, B, W, dataset):
     """
 
     loss_matrix = np.zeros((k*2, k*2))
+
     for i in range(k*2):
         for j in range(k*2):
             if i < k:
-                component_a = components[i, :, :]
+                component_a = H[i, :, :]
             elif i >= k:
+                component_a = B[i-k, :, :]
                 component_slice = bounding_boxes[i-k].to_slices()
-                component_a = background[component_slice]
             if j < k:
-                component_b = H[j, :, :]
+                component_b = components[j, :, :]
             elif j >= k:
-                component_b = B[j-k, :, :]
+                component_slice = bounding_boxes[j-k].to_slices()
+                component_b = background[component_slice]
             loss_matrix[i][j] = np.linalg.norm(component_a - component_b)
 
     ground_truth_indices, reconstruction_indices = linear_sum_assignment(loss_matrix)
-    matches = list(zip(ground_truth_indices, reconstruction_indices))
-    component_reconstruction_loss = \
-            loss_matrix[ground_truth_indices, reconstruction_indices].sum()
+    pairings = list(zip(ground_truth_indices, reconstruction_indices))
 
-    trace_reconstruction_loss = 0
-    for i, j in matches[:k]:
-        trace_reconstruction_loss += np.linalg.norm(traces[i, :]-W[j, :])
-
-    return matches, component_reconstruction_loss, trace_reconstruction_loss
+    return pairings, loss_matrix
