@@ -5,9 +5,34 @@ from scipy.optimize import linear_sum_assignment
 
 def evaluate(H, B, W, dataset):
 
-    components = dataset.components     # shape: (k, w, h)
-    background = dataset.background     # shape: (k, w, h)
-    traces = dataset.traces             # shape: (1, t)
+    """
+    Get the number of component and component background ID mismatches and
+    find the reconstruction error per component and per trace.
+
+    Args:
+
+        H (array-like, shape `(k, w*h)`):
+
+            The factorized matrix that contains all decomposed components.
+
+        B (array-like, shape `(k, w*h)`):
+
+            The factorized matrix that contains the backgrounds of all decomposed
+            components.
+
+        W (array-like, shape `(t, k)`):
+
+            The factorized matrix that contains the traces of all decomposed
+            components.
+
+        dataset (:class: `Dataset`):
+
+            Dataset to be factorized.
+    """
+
+    components = dataset.components
+    background = dataset.background
+    traces = dataset.traces
     bounding_boxes = dataset.bounding_boxes
     k = dataset.num_components
 
