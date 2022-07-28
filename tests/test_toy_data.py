@@ -54,6 +54,33 @@ class TestCaseA(unittest.TestCase):
                 "Partial gradient B wrt. loss matches expectation"
 
 
+    def test_case_B(self):
+
+        """
+        Check if component IDs between reconstruction and ground truth are exact
+        matches
+        """
+        cell_centers = [(32, 32), (180, 180)]
+        image_size = 256
+        cell_size = 64
+        num_frames = 100
+        toy_data = self._generate_toy_data(
+                           cell_centers,
+                           image_size,
+                           cell_size,
+                           num_frames)
+
+        max_iteration = 100000
+        batch_size = 10
+        H, W, B, log = self._fit(toy_data, max_iteration, batch_size)
+        matches, _, _ = evaluate(H, B, W, toy_data)
+        mismatches = [(c, c_hat) for c, c_hat in matches if c != c_hat]
+
+        assert list(zip(*matches))[0] == list(zip(*matches))[1], \
+                f"""The number of mismatched component IDs is {len(mismatches)}\n
+                  The total number of components is {2*len(cell_centers)}"""
+
+
     def _generate_toy_data(self,
                            cell_centers,
                            image_size,
