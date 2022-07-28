@@ -39,6 +39,11 @@ def dnmf(
 
             How often to print iteration statistics.
 
+        log_gradients (bool):
+
+            Whether to record gradients and factor matrices (i.e. H, B, W) after the
+            1st iteration
+
         random_seed (int):
 
             A random seed for the initialization of `H` and `W`. If not given,
@@ -134,7 +139,7 @@ def dnmf(
             log.log_iteration(i, average_loss)
 
         if average_loss < parameters.min_loss:
-            print(f"Optimization converged ({loss}<{parameters.min_loss})")
+            print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
             break
 
     return sigmoid(H_logits), sigmoid(W_logits), sigmoid(B_logits), log
