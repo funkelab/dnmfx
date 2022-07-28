@@ -1,3 +1,4 @@
+from dnmfx.evaluate import evaluate
 from dnmfx.utils import sigmoid
 from dnmfx.optimize import dnmf
 from dnmfx.component_description import create_component_description
@@ -25,7 +26,10 @@ class TestCaseA(unittest.TestCase):
                            image_size,
                            cell_size,
                            num_frames)
-        H, W, B, log = self._fit(toy_data)
+
+        max_iteration = 1
+        batch_size = 1
+        H, W, B, log = self._fit(toy_data, max_iteration, batch_size)
 
         iter_log = log.iteration_logs[0]
         w_logits = iter_log.W_logits[0][0]
@@ -66,11 +70,12 @@ class TestCaseA(unittest.TestCase):
         return toy_data
 
 
-    def _fit(self, toy_data):
+    def _fit(self, toy_data, max_iteration, batch_size):
 
         component_descriptions = \
                         create_component_description(toy_data.bounding_boxes)
-        dnmfx_parameters = DNMFXParameters(max_iteration=1, batch_size=1)
+        dnmfx_parameters = DNMFXParameters(max_iteration=max_iteration,
+                                           batch_size=batch_size)
         H, W, B, log = dnmf(toy_data.sequence,
                             component_descriptions,
                             dnmfx_parameters,
