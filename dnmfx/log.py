@@ -39,7 +39,6 @@ class Log():
     def log_iteration(self,
                       iteration,
                       loss,
-                      log_gradients=False,
                       H_gradient=None,
                       W_gradient=None,
                       B_gradient=None,
@@ -47,17 +46,13 @@ class Log():
                       W_logits=None,
                       B_logits=None):
 
-        if log_gradients:
-            assert None not in [H_gradient, W_gradient, B_gradient], \
-                    "Make sure gradients are not None"
-
-            self.iteration_logs.append(IterationLog(iteration,
-                                                    loss,
-                                                    H_gradient,
-                                                    W_gradient,
-                                                    B_gradient,
-                                                    H_logits,
-                                                    W_logits,
-                                                    B_logits))
-        else:
-            self.iteration_logs.append(IterationLog(iteration, loss))
+        self.iteration_logs.append(
+                IterationLog(
+                             iteration,
+                             loss,
+                             H_gradient,
+                             W_gradient,
+                             B_gradient,
+                             H_logits,
+                             W_logits,
+                             B_logits))
