@@ -42,7 +42,7 @@ def dnmf(
         log_gradients (bool):
 
             Whether to record gradients and factor matrices (i.e. H, B, W) after the
-            1st iteration
+            1st iteration.
 
         random_seed (int):
 
@@ -52,12 +52,12 @@ def dnmf(
 
     num_frames = sequence.shape[0]
     num_components = len(component_descriptions)
-    connected_components = get_groups(component_descriptions)
-    num_connected_components = len(connected_components)
-    print(f"number of connected components: {num_connected_components}")
+    groups = get_groups(component_descriptions)
+    num_groups = len(groups)
+    print(f"number of connected components: {num_groups}")
 
     if random_seed is None:
-        random_seed = datetime.now().toordinal()
+        random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
 
     component_size = None
     for description in component_descriptions:
@@ -83,10 +83,10 @@ def dnmf(
 
         total_loss_per_connected_component = 0
 
-        for i in range(num_connected_components):
+        for i in range(num_groups):
 
             # pick a random component
-            component_description = random.sample(connected_components[i], 1)[0]
+            component_description = random.sample(groups[i], 1)[0]
             component_bounding_box = component_description.bounding_box
 
             # pick a random subset of frames
@@ -118,16 +118,24 @@ def dnmf(
                 grad_W_logits,
                 grad_B_logits,
                 parameters.step_size)
+            update_end_time = timer()
+            time_update += update_end_time - update_start_time
+
+        if iteration % log_every == 0:
+            log.log_time(
+                            iteration,
+                            float(time_loss/log_every),
+                            float(time_getx/log_every),
+                            float(time_update/log_every))
 
         # log gradients after the 1st iteration
         average_loss = \
-                float(total_loss_per_connected_component/num_connected_components)
+                float(total_loss_per_group/num_groups)
 
         if iteration == 0 and log_gradients:
             log.log_iteration(
                         iteration,
                         average_loss,
-                        log_gradients,
                         grad_H_logits,
                         grad_W_logits,
                         grad_B_logits,
@@ -135,7 +143,7 @@ def dnmf(
                         W_logits,
                         B_logits)
 
-        if iteration % log_every == 0:
+        elif iteration % log_every == 0:
             log.log_iteration(i, average_loss)
 
         if average_loss < parameters.min_loss:
