@@ -29,7 +29,13 @@ class TestCaseA(unittest.TestCase):
 
         max_iteration = 1
         batch_size = 1
-        H, W, B, log = self._fit(toy_data, max_iteration, batch_size)
+        log_every=1
+        log_gradients = True
+        H, W, B, log = self._fit(toy_data,
+                                 max_iteration,
+                                 batch_size,
+                                 log_every,
+                                 log_gradients)
 
         iter_log = log.iteration_logs[0]
         w_logits = iter_log.W_logits[0][0]
@@ -70,14 +76,20 @@ class TestCaseA(unittest.TestCase):
                            cell_size,
                            num_frames)
 
-        max_iteration = 100000
+        max_iteration = 1000000
         batch_size = 10
-        H, W, B, log = self._fit(toy_data, max_iteration, batch_size)
-        matches, _, _ = evaluate(H, B, W, toy_data)
-        mismatches = [(c, c_hat) for c, c_hat in matches if c != c_hat]
+        log_every = 100
+        log_gradients = False
+        H, W, B, log = self._fit(toy_data,
+                                 max_iteration,
+                                 batch_size,
+                                 log_every,
+                                 log_gradients)
 
-        assert list(zip(*matches))[0] == list(zip(*matches))[1], \
-                f"""The number of mismatched component IDs is {len(mismatches)}\n
+        mispairings, _, _ = evaluate(H, B, W, toy_data)
+        print(f"mispairings: {mispairings}")
+        assert len(mispairings) == 0, \
+                f"""The number of mispaired component IDs is {len(mispairings)}\n
                   The total number of components is {2*len(cell_centers)}"""
 
 
@@ -97,7 +109,12 @@ class TestCaseA(unittest.TestCase):
         return toy_data
 
 
-    def _fit(self, toy_data, max_iteration, batch_size):
+    def _fit(self,
+            toy_data,
+            max_iteration,
+            batch_size,
+            log_every,
+            log_gradients):
 
         component_descriptions = \
                         create_component_description(toy_data.bounding_boxes)
@@ -106,7 +123,7 @@ class TestCaseA(unittest.TestCase):
         H, W, B, log = dnmf(toy_data.sequence,
                             component_descriptions,
                             dnmfx_parameters,
-                            log_every=1,
-                            log_gradients=True,
-                            random_seed=None)
+                            log_every=log_every,
+                            log_gradients=log_gradients,
+                            random_seed=2001)
         return H, W, B, log
