@@ -1,7 +1,10 @@
 import networkx as nx
+import pickle
+from .component_description import create_component_description
+from .io import read_dataset
 
 
-def get_groups(component_descriptions):
+def get_groups(dataset_path, file_to_save):
     """Find all connected components in the data from component descriptions.
 
      Args:
@@ -15,6 +18,8 @@ def get_groups(component_descriptions):
         A list of lists, each of which is a list of :class:`ComponentDescription`
         that are connected.
     """
+    dataset = read_dataset(dataset_path)
+    component_descriptions = create_component_description(dataset.bounding_boxes)
 
     connection_dict = {
                 component_description:
@@ -29,4 +34,6 @@ def get_groups(component_descriptions):
         connections = list(zip([component_description]*len(overlaps), overlaps))
         G.add_edges_from(connections)
 
-    return [list(c) for c in nx.connected_components(G)]
+    groups = [list(c) for c in nx.connected_components(G)]
+    with open(file_to_save, "wb") as f:
+        pickle.dump(groups, f)
