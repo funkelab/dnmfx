@@ -65,12 +65,12 @@ def fit(
     parameters.l1_weight = l1_weight
 
     dataset = read_dataset(data_path)
-    component_description = \
+    component_descriptions = \
         create_component_description(dataset.bounding_boxes)
 
     H, W, B, log = dnmf(
         dataset.sequence,
-        component_description,
+        component_descriptions,
         parameters,
         log_every,
         log_gradients,
