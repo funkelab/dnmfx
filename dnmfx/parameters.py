@@ -10,20 +10,29 @@ class Parameters():
             min_loss=1e-4,
             batch_size=10,
             step_size=1e-3,
-            l1_weight=0.1):
+            l1_weight=0.1,
+            log_every=10,
+            log_gradients=False,
+            random_seed=None):
 
         self.max_iteration = max_iteration
         self.min_loss = min_loss
         self.batch_size = batch_size
         self.step_size = step_size
         self.l1_weight = l1_weight
+        self.log_every = log_every
+        self.log_gradients = log_gradients
+        self.random_seed = random_seed
 
     def tree_flatten(self):
         children = (self.max_iteration,
                     self.min_loss,
                     self.batch_size,
                     self.step_size,
-                    self.l1_weight)
+                    self.l1_weight,
+                    self.log_every,
+                    self.log_gradients,
+                    self.random_seed)
         aux_data = None
         return (children, aux_data)
 
