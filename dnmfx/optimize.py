@@ -8,15 +8,16 @@ from tqdm import tqdm
 import jax
 import jax.numpy as jnp
 import random
+from timeit import default_timer as timer
 
 
 def dnmf(
         sequence,
         component_descriptions,
         parameters,
-        log_every=10,
-        log_gradients=False,
-        random_seed=None):
+        H_logits,
+        W_logits,
+        B_logits):
     """Perform distributed NMF on the given sequence.
 
     Args:
@@ -35,45 +36,18 @@ def dnmf(
 
             Parameters to control the optimization.
 
-        log_every (int):
+        H_logits (array-like, shape `(k, w*h)`):
 
-            How often to print iteration statistics.
+            Array of the estimated components.
 
-        log_gradients (bool):
+        W_logits (array-like, shape `(t, k)`):
 
-            Whether to record gradients and factor matrices (i.e. H, B, W) after the
-            1st iteration.
+            Array of the activities of the estimated components.
 
-        random_seed (int):
+        B_logits (array-like, shape `(k, w*h)`):
 
-            A random seed for the initialization of `H` and `W`. If not given,
-            a different random seed will be used each time.
-    """
-
-    num_frames = sequence.shape[0]
-    num_components = len(component_descriptions)
-    groups = get_groups(component_descriptions)
-    num_groups = len(groups)
-    print(f"number of connected components: {num_groups}")
-
-    if random_seed is None:
-        random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
-
-    component_size = None
-    for description in component_descriptions:
-        size = description.bounding_box.get_size()
-        if component_size is not None:
-            assert component_size == size, \
-                "Only components of the same size are supported for now"
-        else:
-            component_size = size
-
-    H_logits, W_logits, B_logits = initialize_normal(
-        num_components,
-        num_frames,
-        component_size,
-        random_seed)
-
+            Array of the background of the estimate components.
+   """
     log = Log()
     l2_loss_grad_jit = jax.jit(l2_loss_grad,
                                static_argnames=['component_description'])
@@ -81,74 +55,65 @@ def dnmf(
 
     for iteration in tqdm(range(parameters.max_iteration)):
 
-        total_loss_per_connected_component = 0
+        aggregate_loss = 0
 
-        for i in range(num_groups):
+        # pick a random component
+        component_description = random.sample(component_descriptions, 1)[0]
+        component_bounding_box = component_description.bounding_box
 
-            # pick a random component
-            component_description = random.sample(groups[i], 1)[0]
-            component_bounding_box = component_description.bounding_box
+        num_frames = sequence.shape[0]
+        # pick a random subset of frames
+        frame_indices = tuple(random.sample(
+            list(range(num_frames)),
+            parameters.batch_size))
 
-            # pick a random subset of frames
-            frame_indices = tuple(random.sample(
-                list(range(num_frames)),
-                parameters.batch_size))
+        # gather the sequence data for those components/frames
+        x = get_x(sequence, frame_indices, component_bounding_box)
 
-            # gather the sequence data for those components/frames
-            x = get_x(sequence, frame_indices, component_bounding_box)
-
-            # compute the current loss and gradient
-            loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
-                l2_loss_grad_jit(
-                    H_logits,
-                    W_logits,
-                    B_logits,
-                    x,
-                    component_description,
-                    frame_indices)
-
-            total_loss_per_connected_component += loss
-
-            # update current estimate
-            H_logits, W_logits, B_logits = update_jit(
+        # compute the current loss and gradient
+        loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
+            l2_loss_grad_jit(
                 H_logits,
                 W_logits,
                 B_logits,
-                grad_H_logits,
-                grad_W_logits,
-                grad_B_logits,
-                parameters.step_size)
-            update_end_time = timer()
-            time_update += update_end_time - update_start_time
+                x,
+                component_description,
+                frame_indices)
 
-        if iteration % log_every == 0:
-            log.log_time(
+        aggregate_loss += loss
+
+        # update current estimate
+        H_logits, W_logits, B_logits = update_jit(
+            H_logits,
+            W_logits,
+            B_logits,
+            grad_H_logits,
+            grad_W_logits,
+            grad_B_logits,
+            parameters.step_size)
+
+        if iteration % parameters.log_every == 0:
+
+            average_loss = float(aggregate_loss/parameters.log_every)
+
+            # log gradients after the 1st iteration
+            if iteration == 0 and parameters.log_gradients:
+                log.log_iteration(
                             iteration,
-                            float(time_loss/log_every),
-                            float(time_getx/log_every),
-                            float(time_update/log_every))
+                            average_loss,
+                            grad_H_logits,
+                            grad_W_logits,
+                            grad_B_logits,
+                            H_logits,
+                            W_logits,
+                            B_logits)
 
-        # log gradients after the 1st iteration
-        average_loss = \
-                float(total_loss_per_group/num_groups)
+            elif iteration > 0:
+                log.log_iteration(iteration, average_loss)
 
-        if iteration == 0 and log_gradients:
-            log.log_iteration(
-                        iteration,
-                        average_loss,
-                        grad_H_logits,
-                        grad_W_logits,
-                        grad_B_logits,
-                        H_logits,
-                        W_logits,
-                        B_logits)
-
-        elif iteration % log_every == 0:
-            log.log_iteration(i, average_loss)
-
-        if average_loss < parameters.min_loss:
-            print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
-            break
+            if average_loss < parameters.min_loss:
+                print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
+                break
 
     return sigmoid(H_logits), sigmoid(W_logits), sigmoid(B_logits), log
 
