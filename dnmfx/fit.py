@@ -85,7 +85,6 @@ def fit(
     parameters.l1_weight = l1_weight
     parameters.log_every = log_every
     parameters.log_gradients = log_gradients
-    parameters.random_seed = random_seed
 
     if parameters.random_seed is None:
         parameters.random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
