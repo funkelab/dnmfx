@@ -38,11 +38,10 @@ def evaluate(H, B, W, dataset):
 
     H = H.reshape(-1, *components[0].shape)
     B = B.reshape(-1, *components[0].shape)
-    W = W.reshape(traces.shape)
 
     component_loss = {i: np.linalg.norm(components[i, :] - H[i, :])
                       for i in range(k)}
-    trace_loss = {i: np.linalg.norm(traces[i, :] - W[i, :])
+    trace_loss = {i: np.linalg.norm(traces[i, :] - W[:, i])
                       for i in range(k)}
 
     return component_loss, trace_loss
