@@ -81,16 +81,6 @@ def dnmf(
 
         aggregate_loss += loss
 
-        # update current estimate
-        H_logits, W_logits, B_logits = update_jit(
-            H_logits,
-            W_logits,
-            B_logits,
-            grad_H_logits,
-            grad_W_logits,
-            grad_B_logits,
-            parameters.step_size)
-
         if iteration % parameters.log_every == 0:
 
             if iteration == 0: average_loss = loss
@@ -116,6 +106,16 @@ def dnmf(
             if average_loss < parameters.min_loss:
                 print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
                 break
+
+        # update current estimate
+        H_logits, W_logits, B_logits = update_jit(
+            H_logits,
+            W_logits,
+            B_logits,
+            grad_H_logits,
+            grad_W_logits,
+            grad_B_logits,
+            parameters.step_size)
 
     return sigmoid(H_logits), sigmoid(W_logits), sigmoid(B_logits), log
 
