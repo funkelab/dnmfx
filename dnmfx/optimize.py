@@ -52,10 +52,9 @@ def dnmf(
     l2_loss_grad_jit = jax.jit(l2_loss_grad,
                                static_argnames=['component_description'])
     update_jit = jax.jit(update)
+    aggregate_loss = 0
 
     for iteration in tqdm(range(parameters.max_iteration)):
-
-        aggregate_loss = 0
 
         # pick a random component
         component_description = random.sample(component_descriptions, 1)[0]
@@ -94,7 +93,10 @@ def dnmf(
 
         if iteration % parameters.log_every == 0:
 
-            average_loss = float(aggregate_loss/parameters.log_every)
+            if iteration == 0: average_loss = loss
+            else: average_loss = float(aggregate_loss/parameters.log_every)
+
+            aggregate_loss = 0
 
             # log gradients after the 1st iteration
             if iteration == 0 and parameters.log_gradients:
