@@ -9,14 +9,14 @@ def get_groups(dataset_path):
      Args:
 
         component_descriptions (list of :class:`ComponentDescription`):
-
             The bounding boxes and indices of the components to estimate.
 
     Returns:
 
-        A list of lists, each of which is a list of :class:`ComponentDescription`
-        that are connected.
+        A list of lists of length the number of groups; each list contains a number
+        of :class:`ComponentDescription` that form a group.
     """
+
     dataset = read_dataset(dataset_path)
     component_descriptions = create_component_description(dataset.bounding_boxes)
 
