@@ -48,22 +48,19 @@ def fit(
             The influence of the L1 regularizer on the components and traces.
 
         log_every (int):
-
             How often to print iteration statistics.
 
         log_gradients (bool):
-
             Whether to record gradients and factor matrices (i.e. H, B, W) after the
             1st iteration.
 
         random_seed (int):
-
             A random seed for the initialization of `H` and `W`. If not given,
             a different random seed will be used each time.
 
     Returns:
 
-        The maxtrix factors of the dataset (i.e. H, W, B) and the losses stored as
+        The optimization result of the dataset (i.e. H, W, B) and the losses stored as
         :class: `Log`.
     """
 
@@ -104,8 +101,35 @@ def fit(
     return H, W, B, log_groups
 
 
-def fit_group(component_descriptions, dataset_path, parameters,
-              H_logits, W_logits, B_logits):
+def fit_group(component_descriptions,
+              dataset_path,
+              parameters):
+    """ Use NMF to estimate the components and traces for a group from the dataset
+    given as a list of :class: `ComponentDescription`
+
+    Args:
+
+        component_descriptions (list of :class: `ComponentDescription`):
+            A list of :class: `ComponentDescription` that form a group in the
+            dataset.
+
+        dataset_path (string):
+            The path to the zarr container containing the dataset. Should have
+            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
+            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
+            the number of components and `d` the number of spatial dimensions.
+            `component_locations` stores the begin and end of each component,
+            i.e., `component_locations[1, 0, :]` is the begin of component `1`
+            and `component_locations[1, 1, :]` is its end.
+
+        parameters (:class: `Parameters`):
+            Parameters to control the optimization.
+
+    Returns:
+
+        The optimization result of a group from the dataset (i.e. `H_group`, `W_group`,
+        `B_group`) and the losses stored as :class: `Log`.
+    """
 
     component_size = None
     for description in component_descriptions:
@@ -139,7 +163,32 @@ def fit_group(component_descriptions, dataset_path, parameters,
 
 
 def assemble(component_group_index_pairings,
-             H_groups, B_groups, W_groups):
+             H_groups,
+             B_groups,
+             W_groups):
+    """Assemble optimization results from all groups in the dataset.
+
+    Args:
+
+        component_group_index_pairings (dictionary):
+            A dictionary of size number of the components that map component index
+            (key) to group index (value).
+
+        H_groups (list):
+            A list of `H_group` obtained from optimization result of a single group
+            in the dataset.
+
+        B_groups (list):
+            A list of `B_group` obtained from optimization result of a single group
+            in the dataset.
+
+        W_groups (list):
+            A list of `W_group` obtained from optimization result of a single group
+            in the dataset.
+
+    Returns:
+         The optimization result of the dataset (i.e. H, W, B).
+    """
 
     num_components = len(component_group_index_pairings)
     group_index = component_group_index_pairings[0]
