@@ -1,15 +1,14 @@
 from datetime import datetime
-import pickle
+import jax.numpy as jnp
 from .optimize import dnmf
 from .parameters import Parameters
+from .groups import get_groups
 from .io import read_dataset
 from .initialize import initialize_normal
 
 
 def fit(
         dataset_path,
-        groups_path,
-        group_index,
         max_iteration=10000,
         min_loss=1e-4,
         batch_size=10,
@@ -31,15 +30,6 @@ def fit(
             `component_locations` stores the begin and end of each component,
             i.e., `component_locations[1, 0, :]` is the begin of component `1`
             and `component_locations[1, 1, :]` is its end.
-
-        groups_path (string):
-            The path to the pickle file containing the groups of the dataset. Should
-            be a list of lists; the list length is the number of groups; each list
-            contains an uncertain number of objects :class: `ComponentDescription`
-            that are members within a group.
-
-        group_index (int):
-            The index indicating which group is to be fitted.
 
         max_iteration (int):
             The maximum number of iterations to optimize for.
@@ -91,11 +81,31 @@ def fit(
     else:
         parameters.random_seed = random_seed
 
-    with open(groups_path, "rb") as f:
-        content = f.read()
-    groups = pickle.loads(content)
+    H_groups = []
+    W_groups = []
+    B_groups = []
+    log_groups = []
 
-    component_descriptions = groups[group_index]
+    component_group_index_pairings, groups = get_groups(dataset_path)
+
+    for group in groups:
+        H_group, W_group, B_group, log_group = fit_group(
+                                                    group,
+                                                    dataset_path,
+                                                    parameters)
+        H_groups.append(H_group)
+        W_groups.append(W_group)
+        B_groups.append(B_group)
+        log_groups.append(log_group)
+
+    H, W, B = assemble(component_group_index_pairings,
+                       H_groups, B_groups, W_groups)
+
+    return H, W, B, log_groups
+
+
+def fit_group(component_descriptions, dataset_path, parameters,
+              H_logits, W_logits, B_logits):
 
     component_size = None
     for description in component_descriptions:
@@ -126,3 +136,22 @@ def fit(
             B_logits)
 
     return H, W, B, log
+
+
+def assemble(component_group_index_pairings,
+             H_groups, B_groups, W_groups):
+
+    num_components = len(component_group_index_pairings)
+    group_index = component_group_index_pairings[0]
+
+    H = H_groups[group_index][0]
+    B = B_groups[group_index][0]
+    W = W_groups[group_index][:, 0]
+
+    for component_index in range(1, num_components):
+        group_index = component_group_index_pairings[component_index]
+        H = jnp.stack((H_groups[group_index][component_index], H))
+        B = jnp.stack((B_groups[group_index][component_index], B))
+        W = jnp.stack((W, W_groups[group_index][:, component_index]), axis=1)
+
+    return H, W, B
