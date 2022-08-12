@@ -33,11 +33,4 @@ def get_groups(dataset_path):
         connections = list(zip([component_description]*len(overlaps), overlaps))
         G.add_edges_from(connections)
 
-    groups = [list(c) for c in nx.connected_components(G)]
-
-    component_group_index_pairings = {}
-    for group_index, group in enumerate(groups):
-        for component in group:
-            component_group_index_pairings[component.index] = group_index
-
-    return component_group_index_pairings, groups
+    return [list(c) for c in nx.connected_components(G)]
