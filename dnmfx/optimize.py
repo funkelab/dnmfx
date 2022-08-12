@@ -13,7 +13,7 @@ from timeit import default_timer as timer
 
 
 def dnmf(
-        sequence,
+        dataset,
         component_descriptions,
         parameters,
         H_logits,
@@ -53,6 +53,8 @@ def dnmf(
                                static_argnames=['component_description'])
     update_jit = jax.jit(update)
     aggregate_loss = 0
+
+    sequence = dataset.sequence
 
     for iteration in tqdm(range(parameters.max_iteration)):
 
@@ -100,7 +102,7 @@ def dnmf(
                             W_logits,
                             B_logits)
 
-            elif !parameters.log_gradients:
+            elif not parameters.log_gradients:
                 component_loss, trace_loss = evaluate(
                                                 sigmoid(H_logits),
                                                 sigmoid(B_logits),

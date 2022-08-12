@@ -156,7 +156,7 @@ def fit_group(component_descriptions,
             parameters.random_seed)
 
     H, W, B, log = dnmf(
-            sequence,
+            dataset,
             component_descriptions,
             parameters,
             H_logits,
