@@ -3,6 +3,7 @@ from .initialize import initialize_normal
 from .log import Log
 from .loss import l2_loss_grad
 from .utils import sigmoid
+from .evaluate import evaluate
 from datetime import datetime
 from tqdm import tqdm
 import jax
@@ -99,8 +100,16 @@ def dnmf(
                             W_logits,
                             B_logits)
 
-            elif iteration > 0:
-                log.log_iteration(iteration, average_loss)
+            elif !parameters.log_gradients:
+                component_loss, trace_loss = evaluate(
+                                                sigmoid(H_logits),
+                                                sigmoid(B_logits),
+                                                sigmoid(W_logits),
+                                                dataset)
+                log.log_iteration(iteration,
+                                  average_loss,
+                                  component_loss,
+                                  trace_loss)
 
             if average_loss < parameters.min_loss:
                 print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
