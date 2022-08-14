@@ -10,6 +10,34 @@ def l2_loss(
         x,
         component_description,
         frame_indices):
+    """Compute the L2 distance between data from a single component and
+    reconstruction from optimization results.
+
+    Args:
+
+        H_logits (array-like, shape `(k, w*h)`):
+             Array of the estimated components.
+
+        W_logits (array-like, shape `(t, k)`):
+            Array of the activities of the estimated components.
+
+        B_logits (array-like, shape `(k, w*h)`):
+            Array of the background of the estimate components.
+
+        x (array-like, shape `(w, h)`):
+            Data from a single component.
+
+        component_description (:class: `ComponentDescription`):
+            The bounding box, index, and overlapping components of the given
+            component `x`.
+
+        frame_indices (list):
+            A list of frame indices of length the batch size.
+
+    Returns:
+
+        L2 distance between x and reconstruction `H_logits`, `W_logits`, `B_logits`.
+    """
 
     assert len(H_logits.shape) == 2
     assert len(W_logits.shape) == 2
@@ -29,6 +57,35 @@ def l2_loss(
 l2_loss_grad = jax.value_and_grad(l2_loss, argnums=(0, 1, 2))
 
 def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
+    """Estimate reconstruction of a single component from array of estimated
+    components, traces, and backgrounds; suppose the component to be estimated is c
+    and denote every of its overlapping component as c', we reconstruct x_c as the
+    following:
+
+                x̂_c = B_c + W_c * H_c + Σ [B_c' + W_c' + H_c'].
+
+    Args:
+
+        H_logits (array-like, shape `(k, w*h)`):
+            Array of the estimated components.
+
+        W_logits (array-like, shape `(t, k)`):
+            Array of the activities of the estimated components.
+
+        B_logits (array-like, shape `(k, w*h)`):
+            Array of the background of the estimate components.
+
+        component_description (:class: `ComponentDescription`):
+            The bounding box, index, and overlapping components of some
+            component `x`.
+
+        frames (list):
+            A list of frame indices of length the batch size.
+
+    Returns:
+
+        Reconstructed x̂_c.
+    """
 
     i = component_description.index
     bb_i = component_description.bounding_box
