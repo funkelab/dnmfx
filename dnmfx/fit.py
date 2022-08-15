@@ -84,10 +84,9 @@ def fit(
     log_groups = []
 
     groups = get_groups(dataset_path)
-    component_group_index_pairings = {}
-    for group_index, group in enumerate(groups):
-        for component in group:
-            component_group_index_pairings[component.index] = group_index
+    component_group_index_pairings = {component.index: group_index
+                                      for group_index, group in enumerate(groups)
+                                      for component in group}
 
     for group in groups:
         H_group, W_group, B_group, log_group = fit_group(
