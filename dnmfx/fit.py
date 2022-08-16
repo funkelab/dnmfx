@@ -64,19 +64,17 @@ def fit(
         :class: `Log`.
     """
 
-    parameters = Parameters()
-    parameters.max_iteration = max_iteration
-    parameters.min_loss = min_loss
-    parameters.batch_size = batch_size
-    parameters.step_size = step_size
-    parameters.l1_weight = l1_weight
-    parameters.log_every = log_every
-    parameters.log_gradients = log_gradients
+    if random_seed == None:
+        random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
 
-    if parameters.random_seed is None:
-        parameters.random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
-    else:
-        parameters.random_seed = random_seed
+    parameters = Parameters(max_iteration,
+            min_loss,
+            batch_size,
+            step_size,
+            l1_weight,
+            log_every,
+            log_gradients,
+            random_seed)
 
     H_groups = []
     W_groups = []
