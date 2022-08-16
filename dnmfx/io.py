@@ -5,6 +5,29 @@ import zarr
 
 
 def read_dataset(dataset_path):
+    """Read in dataset in a zarr container given dataset path.
+
+    Args:
+
+        dataset_path (string):
+            The path to the zarr container containing the dataset. Should have
+            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
+            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
+            the number of components and `d` the number of spatial dimensions.
+            `component_locations` stores the begin and end of each component,
+            i.e., `component_locations[1, 0, :]` is the begin of component `1`
+            and `component_locations[1, 1, :]` is its end.
+
+    Returns:
+
+        Dataset (:class: `Dataset`):
+            Dataset that contains `bounding_boxes` as :class: `funlib.geometry.Roi`,
+            components of shape `(k, s)` where `k` is the number of components, `s`
+            is the component size, `traces` of shape `(t, k)` where `t` is the number
+            of frames, `background` of shape `(image_size, image_size)`, `noises` of
+            shape `(t, image_size, image_size)`, and `sequence` dataset of shape
+            `(t, [[z,], y,] x)`.
+    """
 
     with zarr.open(dataset_path, 'r') as f:
 
@@ -45,6 +68,27 @@ def read_dataset(dataset_path):
 
 
 def write_dataset(dataset, dataset_path):
+    """Write dataset to a zarr container.
+
+    Args:
+
+        Dataset (:class: `Dataset`):
+            Dataset that contains `bounding_boxes` as :class: `funlib.geometry.Roi`,
+            components of shape `(k, s)` where `k` is the number of components, `s`
+            is the component size, `traces` of shape `(t, k)` where `t` is the number
+            of frames, `background` of shape `(image_size, image_size)`, `noises` of
+            shape `(t, image_size, image_size)`, and `sequence` dataset of shape
+            `(t, [[z,], y,] x)`.
+
+        dataset_path (string):
+            The path to the zarr container containing the dataset. Should have
+            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
+            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
+            the number of components and `d` the number of spatial dimensions.
+            `component_locations` stores the begin and end of each component,
+            i.e., `component_locations[1, 0, :]` is the begin of component `1`
+            and `component_locations[1, 1, :]` is its end.
+   """
 
     with zarr.open(dataset_path, 'a') as f:
 
