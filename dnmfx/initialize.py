@@ -1,4 +1,5 @@
 import jax
+from .utils import log1pexp
 
 
 def initialize_normal(num_components, num_frames, component_size, random_seed):
@@ -28,18 +29,18 @@ def initialize_normal(num_components, num_frames, component_size, random_seed):
     key = jax.random.PRNGKey(random_seed)
 
     key, subkey = jax.random.split(key)
-    H_logits = jax.random.normal(
+    H_logits = log1pexp(jax.random.normal(
         subkey,
-        shape=(num_components, component_size))
+        shape=(num_components, component_size)))
 
     key, subkey = jax.random.split(key)
-    B_logits = jax.random.normal(
+    B_logits = log1pexp(jax.random.normal(
         subkey,
-        shape=(num_components, component_size))
+        shape=(num_components, component_size)))
 
     _, subkey = jax.random.split(key)
-    W_logits = jax.random.normal(
+    W_logits = log1pexp(jax.random.normal(
         subkey,
-        shape=(num_frames, num_components))
+        shape=(num_frames, num_components)))
 
     return H_logits, W_logits, B_logits
