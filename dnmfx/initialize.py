@@ -41,6 +41,6 @@ def initialize_normal(num_components, num_frames, component_size, random_seed):
     _, subkey = jax.random.split(key)
     W_logits = log1pexp(jax.random.normal(
         subkey,
-        shape=(num_frames, num_components)))
+        shape=(num_frames, num_components))).T
 
     return H_logits, W_logits, B_logits

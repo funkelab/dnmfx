@@ -196,12 +196,12 @@ def assemble(component_group_index_pairings,
 
     H = H_groups[group_index][0]
     B = B_groups[group_index][0]
-    W = W_groups[group_index][:, 0].reshape(-1, 1)
+    W = W_groups[group_index][0]
 
     for component_index in range(1, num_components):
         group_index = component_group_index_pairings[component_index]
         H = jnp.vstack((H, H_groups[group_index][component_index]))
         B = jnp.vstack((B, B_groups[group_index][component_index]))
-        W = jnp.hstack((W, W_groups[group_index][:, component_index].reshape(-1, 1)))
+        W = jnp.vstack((W, W_groups[group_index][component_index]))
 
     return H, W, B

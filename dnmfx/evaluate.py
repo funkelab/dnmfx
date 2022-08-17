@@ -40,7 +40,7 @@ def evaluate(H, W, dataset):
 
     component_loss = {i: float(np.linalg.norm(components[i, :] - H[i, :])/num_pixels)
                       for i in range(k)}
-    trace_loss = {i: float(np.linalg.norm(traces[i, :] - W[:, i])/num_pixels)
+    trace_loss = {i: float(np.linalg.norm(traces[i, :] - W[i, :])/num_pixels)
                       for i in range(k)}
 
     return component_loss, trace_loss

@@ -89,8 +89,7 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
 
     i = component_description.index
     bb_i = component_description.bounding_box
-
-    w = sigmoid(W_logits[frames, i])
+    w = sigmoid(W_logits[i, frames])
     h = sigmoid(H_logits[i])
     b = sigmoid(B_logits[i])
 
@@ -112,7 +111,7 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         H_logits = H_logits.reshape(-1, *bb_i.shape)
         B_logits = B_logits.reshape(-1, *bb_i.shape)
 
-        w = sigmoid(W_logits[frames, j])
+        w = sigmoid(W_logits[j, frames])
         h = sigmoid(H_logits[slices_j])
         b = sigmoid(B_logits[slices_j])
 
