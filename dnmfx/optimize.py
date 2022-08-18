@@ -59,6 +59,7 @@ def dnmf(
     for iteration in tqdm(range(parameters.max_iteration)):
 
         # pick a random component
+        random.seed(parameters.random_seed + iteration)
         component_description = random.sample(component_descriptions, 1)[0]
         component_bounding_box = component_description.bounding_box
 
