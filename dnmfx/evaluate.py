@@ -59,7 +59,7 @@ def evaluate(H, W, B, dataset):
                                components[i] - H[i])/num_component_pixels)
                       for i in range(num_components)}
     trace_loss = {i: float(np.linalg.norm(
-                           traces[i] - W[i])/num_image_pixels)
+                           traces[i] - W[i])/num_frames)
                       for i in range(num_components)}
     reconstruction_error = {t: float(np.linalg.norm(
                     sequence[t, :, :] - reconstruction[t, :, :])/num_image_pixels)
