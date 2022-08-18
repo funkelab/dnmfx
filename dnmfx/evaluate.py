@@ -1,6 +1,4 @@
-from dnmfx.io import read_dataset
 import numpy as np
-from scipy.optimize import linear_sum_assignment
 
 
 def evaluate(H, W, B, dataset):
@@ -22,14 +20,14 @@ def evaluate(H, W, B, dataset):
     Returns:
 
         component_loss (dictionary):
-            A dictionary that corresponds each component index (key) to its loss
-            (value) that is the L2 distance between the ground truth (if known) and
-            component estimation from optmization.
+            A dictionary that corresponds each component index (key) to its
+            per pixel loss (value) that is the L2 distance between the ground
+            truth (if known) and component estimation from optmization.
 
         trace_loss (dictionary):
-            A dictionary that corresponds each component index (key) to its loss
-            (value) that is the L2 distance between the ground truth (if known) and
-            trace estimation from optmization.
+            A dictionary that corresponds each component index (key) to its
+            per time frame loss (value) that is the L2 distance between the
+            ground truth (if known) and trace estimation from optmization.
     """
 
     components = dataset.components
@@ -60,9 +58,10 @@ def evaluate(H, W, B, dataset):
                       for i in range(num_components)}
     trace_loss = {i: float(np.linalg.norm(
                            traces[i] - W[i])/num_frames)
-                      for i in range(num_components)}
+                  for i in range(num_components)}
     reconstruction_error = {t: float(np.linalg.norm(
-                    sequence[t, :, :] - reconstruction[t, :, :])/num_image_pixels)
+                    sequence[t, :, :] - reconstruction[t, :, :])
+                    / num_image_pixels)
                     for t in range(num_frames)}
 
     return component_loss, trace_loss, reconstruction_error
