@@ -51,8 +51,8 @@ def fit(
             How often to print iteration statistics.
 
         log_gradients (bool):
-            Whether to record gradients and factor matrices (i.e. H, B, W) after the
-            1st iteration.
+            Whether to record gradients and factor matrices (i.e. H, B, W)
+            after the 1st iteration.
 
         random_seed (int):
             A random seed for the initialization of `H` and `W`. If not given,
@@ -60,21 +60,21 @@ def fit(
 
     Returns:
 
-        The optimization result of the dataset (i.e. H, W, B) and the losses stored as
-        :class: `Log`.
+        The optimization result of the dataset (i.e. H, W, B) and
+        the losses stored as :class: `Log`.
     """
 
-    if random_seed == None:
+    if random_seed is None:
         random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
 
     parameters = Parameters(max_iteration,
-            min_loss,
-            batch_size,
-            step_size,
-            l1_weight,
-            log_every,
-            log_gradients,
-            random_seed)
+                            min_loss,
+                            batch_size,
+                            step_size,
+                            l1_weight,
+                            log_every,
+                            log_gradients,
+                            random_seed)
 
     H_groups = []
     W_groups = []
@@ -82,9 +82,10 @@ def fit(
     log_groups = []
 
     groups = get_groups(dataset_path)
-    component_group_index_pairings = {component.index: group_index
-                                      for group_index, group in enumerate(groups)
-                                      for component in group}
+    component_group_index_pairings = \
+        {component.index: group_index
+            for group_index, group in enumerate(groups)
+            for component in group}
 
     for group in groups:
         H_group, W_group, B_group, log_group = fit_group(
@@ -128,8 +129,9 @@ def fit_group(component_descriptions,
 
     Returns:
 
-        The optimization result of a group from the dataset (i.e. `H_group`, `W_group`,
-        `B_group`) and the losses stored as :class: `Log`.
+        The optimization result of a group from the dataset
+        (i.e. `H_group`, `W_group`, `B_group`) and the losses stored as
+        :class: `Log`.
     """
 
     component_size = None
@@ -172,20 +174,20 @@ def assemble(component_group_index_pairings,
     Args:
 
         component_group_index_pairings (dictionary):
-            A dictionary of size number of the components that map component index
-            (key) to group index (value).
+            A dictionary of size number of the components that
+            map component index (key) to group index (value).
 
         H_groups (list):
-            A list of `H_group` obtained from optimization result of a single group
-            in the dataset.
+            A list of `H_group` obtained from optimization result
+            of a single group in the dataset.
 
         B_groups (list):
-            A list of `B_group` obtained from optimization result of a single group
-            in the dataset.
+            A list of `B_group` obtained from optimization result
+            of a single group in the dataset.
 
         W_groups (list):
-            A list of `W_group` obtained from optimization result of a single group
-            in the dataset.
+            A list of `W_group` obtained from optimization result
+            of a single group in the dataset.
 
     Returns:
          The optimization result of the dataset (i.e. H, W, B).
