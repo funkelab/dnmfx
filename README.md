@@ -53,7 +53,7 @@ box_slices = bounding_box.get_bounding_box()
 ```py
 from dnmfx.Dataset import Dataset
 
-sequence = mydataset.render()
+mydataset.sequence = mydataset.render()
 ```
 
 You can also read dataset from a path and write your own dataset:
