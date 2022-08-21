@@ -103,7 +103,7 @@ H, W, B, log = fit(dataset_path,
                    random_seed)
 ```
 
-**`dataset_path`** *(string, required)*: path to the zarr container containing the dataset. The dataset should have a `sequence` dataset of shape `(t, z, y, x)`. To construct `sequence`, see [preparing the input data](#preparing input data).
+**`dataset_path`** *(string, required)*: path to the zarr container containing the dataset. The dataset should have a `sequence` dataset of shape `(t, z, y, x)`. To construct `sequence`, see [preparing the input data](#preparing-input-data).
 
 **`max_iteration`** *(int, default=10000)*: the maximum number of iterations. If hit, fitting terminates and the current optimization results are returned.
 
