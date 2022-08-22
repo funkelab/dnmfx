@@ -5,9 +5,7 @@ class IterationLog():
 
     def __init__(self,
                  iteration,
-                 reconstruction_loss,
-                 component_loss,
-                 trace_loss,
+                 loss,
                  grad_H_logits,
                  grad_W_logits,
                  grad_B_logits,
@@ -16,9 +14,7 @@ class IterationLog():
                  B_logits):
 
         self.iteration = iteration
-        self.reconstruction_loss = reconstruction_loss
-        self.component_loss = component_loss
-        self.trace_loss = trace_loss
+        self.loss = loss
         self.grad_H_logits = grad_H_logits
         self.grad_W_logits = grad_W_logits
         self.grad_B_logits = grad_B_logits
@@ -26,7 +22,7 @@ class IterationLog():
         self.W_logits = W_logits
         self.B_logits = B_logits
 
-        assert iteration is not None and reconstruction_loss is not None, \
+        assert iteration is not None and loss is not None, \
             "Both iteration and loss have to be logged"
 
 
@@ -42,9 +38,7 @@ class Log():
 
     def log_iteration(self,
                       iteration,
-                      reconstruction_loss,
-                      component_loss=None,
-                      trace_loss=None,
+                      loss,
                       H_gradient=None,
                       W_gradient=None,
                       B_gradient=None,
@@ -55,9 +49,7 @@ class Log():
         self.iteration_logs.append(
                 IterationLog(
                              iteration,
-                             reconstruction_loss,
-                             component_loss,
-                             trace_loss,
+                             loss,
                              H_gradient,
                              W_gradient,
                              B_gradient,
