@@ -3,7 +3,7 @@ from .component_description import create_component_description
 from .io import read_dataset
 
 
-def get_groups(dataset_path):
+def get_groups(dataset):
     """Find all connected components in the data from component descriptions.
 
      Args:
@@ -17,7 +17,6 @@ def get_groups(dataset_path):
         of :class:`ComponentDescription` that form a group.
     """
 
-    dataset = read_dataset(dataset_path)
     component_descriptions = create_component_description(dataset.bounding_boxes)
 
     connection_dict = {

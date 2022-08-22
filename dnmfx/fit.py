@@ -8,7 +8,7 @@ from .initialize import initialize_normal
 
 
 def fit(
-        dataset_path,
+        dataset,
         max_iteration=10000,
         min_loss=1e-4,
         batch_size=10,
@@ -81,7 +81,7 @@ def fit(
     B_groups = []
     log_groups = []
 
-    groups = get_groups(dataset_path)
+    groups = get_groups(dataset)
     component_group_index_pairings = \
         {component.index: group_index
             for group_index, group in enumerate(groups)
@@ -90,7 +90,7 @@ def fit(
     for group in groups:
         H_group, W_group, B_group, log_group = fit_group(
                                                     group,
-                                                    dataset_path,
+                                                    dataset,
                                                     parameters)
         H_groups.append(H_group)
         W_groups.append(W_group)
@@ -104,7 +104,7 @@ def fit(
 
 
 def fit_group(component_descriptions,
-              dataset_path,
+              dataset,
               parameters):
     """Use NMF to estimate the components and traces for a group from the dataset
     given as a list of :class: `ComponentDescription`
@@ -143,7 +143,6 @@ def fit_group(component_descriptions,
         else:
             component_size = size
 
-    dataset = read_dataset(dataset_path)
     sequence = dataset.sequence
     num_frames = sequence.shape[0]
     num_components = dataset.num_components
