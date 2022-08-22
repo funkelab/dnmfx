@@ -50,11 +50,13 @@ def dnmf(
 
     log = Log()
     l2_loss_grad_jit = jax.jit(l2_loss_grad,
-                               static_argnames=['component_description'])
+                               static_argnums=(4,))
     update_jit = jax.jit(update)
     aggregate_loss = 0
 
     sequence = dataset.sequence
+    components = jnp.array(dataset.components)
+    traces = jnp.array(dataset.traces)
 
     for iteration in tqdm(range(parameters.max_iteration)):
 
@@ -80,7 +82,10 @@ def dnmf(
                 B_logits,
                 x,
                 component_description,
-                frame_indices)
+                frame_indices,
+                parameters.l1_weight,
+                components,
+                traces)
 
         aggregate_loss += loss
 

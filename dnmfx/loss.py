@@ -9,7 +9,10 @@ def l2_loss(
         B_logits,
         x,
         component_description,
-        frame_indices):
+        frame_indices,
+        l1_weight,
+        components,
+        traces):
     """Compute the L2 distance between data from a single component and
     reconstruction from optimization results.
 
@@ -51,7 +54,22 @@ def l2_loss(
             component_description,
             frame_indices)
 
-    return jnp.linalg.norm(x - x_hat)
+    l2_loss = jnp.linalg.norm(x - x_hat)
+
+    if components is not None and traces is not None:
+
+        i = component_description.index
+        bb_i = component_description.bounding_box
+        l1_loss = jnp.linalg.norm(
+                      components[i] -
+                      sigmoid(H_logits[i]).reshape(bb_i.shape), ord=1) + \
+                  jnp.linalg.norm(
+                      traces[i, frame_indices] -
+                      sigmoid(W_logits[i, frame_indices]), ord=1)
+    else:
+        l1_loss = 0
+
+    return l2_loss + l1_weight * l1_loss
 
 
 l2_loss_grad = jax.value_and_grad(l2_loss, argnums=(0, 1, 2))
