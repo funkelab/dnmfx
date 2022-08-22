@@ -1,15 +1,14 @@
 from datetime import datetime
-import pickle
+import jax.numpy as jnp
 from .optimize import dnmf
 from .parameters import Parameters
+from .groups import get_groups
 from .io import read_dataset
 from .initialize import initialize_normal
 
 
 def fit(
         dataset_path,
-        groups_path,
-        group_index,
         max_iteration=10000,
         min_loss=1e-4,
         batch_size=10,
@@ -32,15 +31,6 @@ def fit(
             i.e., `component_locations[1, 0, :]` is the begin of component `1`
             and `component_locations[1, 1, :]` is its end.
 
-        groups_path (string):
-            The path to the pickle file containing the groups of the dataset. Should
-            be a list of lists; the list length is the number of groups; each list
-            contains an uncertain number of objects :class: `ComponentDescription`
-            that are members within a group.
-
-        group_index (int):
-            The index indicating which group is to be fitted.
-
         max_iteration (int):
             The maximum number of iterations to optimize for.
 
@@ -58,44 +48,91 @@ def fit(
             The influence of the L1 regularizer on the components and traces.
 
         log_every (int):
-
             How often to print iteration statistics.
 
         log_gradients (bool):
-
-            Whether to record gradients and factor matrices (i.e. H, B, W) after the
-            1st iteration.
+            Whether to record gradients and factor matrices (i.e. H, B, W)
+            after the 1st iteration.
 
         random_seed (int):
-
             A random seed for the initialization of `H` and `W`. If not given,
             a different random seed will be used each time.
 
     Returns:
 
-        The maxtrix factors of the dataset (i.e. H, W, B) and the losses stored as
-        :class: `Log`.
+        The optimization result of the dataset (i.e. H, W, B) and
+        the losses stored as :class: `Log`.
     """
 
-    parameters = Parameters()
-    parameters.max_iteration = max_iteration
-    parameters.min_loss = min_loss
-    parameters.batch_size = batch_size
-    parameters.step_size = step_size
-    parameters.l1_weight = l1_weight
-    parameters.log_every = log_every
-    parameters.log_gradients = log_gradients
+    if random_seed is None:
+        random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
 
-    if parameters.random_seed is None:
-        parameters.random_seed = int(datetime.now().strftime("%Y%m%d%H%M%S"))
-    else:
-        parameters.random_seed = random_seed
+    parameters = Parameters(max_iteration,
+                            min_loss,
+                            batch_size,
+                            step_size,
+                            l1_weight,
+                            log_every,
+                            log_gradients,
+                            random_seed)
 
-    with open(groups_path, "rb") as f:
-        content = f.read()
-    groups = pickle.loads(content)
+    H_groups = []
+    W_groups = []
+    B_groups = []
+    log_groups = []
 
-    component_descriptions = groups[group_index]
+    groups = get_groups(dataset_path)
+    component_group_index_pairings = \
+        {component.index: group_index
+            for group_index, group in enumerate(groups)
+            for component in group}
+
+    for group in groups:
+        H_group, W_group, B_group, log_group = fit_group(
+                                                    group,
+                                                    dataset_path,
+                                                    parameters)
+        H_groups.append(H_group)
+        W_groups.append(W_group)
+        B_groups.append(B_group)
+        log_groups.append(log_group)
+
+    H, W, B = assemble(component_group_index_pairings,
+                       H_groups, B_groups, W_groups)
+
+    return H, W, B, log_groups
+
+
+def fit_group(component_descriptions,
+              dataset_path,
+              parameters):
+    """Use NMF to estimate the components and traces for a group from the dataset
+    given as a list of :class: `ComponentDescription`
+
+    Args:
+
+        component_descriptions (list of :class: `ComponentDescription`):
+            A list of :class: `ComponentDescription` that form a group in the
+            dataset.
+
+        dataset_path (string):
+            The path to the zarr container containing the dataset. Should have
+            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
+            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
+            the number of components and `d` the number of spatial dimensions.
+            `component_locations` stores the begin and end of each component,
+            i.e., `component_locations[1, 0, :]` is the begin of component `1`
+            and `component_locations[1, 1, :]` is its end.
+
+        parameters (:class: `Parameters`):
+            Parameters to control the optimization.
+
+    Returns:
+
+        The optimization result of a group from the dataset
+        (i.e. `H_group`, `W_group`, `B_group`) and the losses stored as
+        :class: `Log`.
+    """
 
     component_size = None
     for description in component_descriptions:
@@ -118,7 +155,7 @@ def fit(
             parameters.random_seed)
 
     H, W, B, log = dnmf(
-            sequence,
+            dataset,
             component_descriptions,
             parameters,
             H_logits,
@@ -126,3 +163,47 @@ def fit(
             B_logits)
 
     return H, W, B, log
+
+
+def assemble(component_group_index_pairings,
+             H_groups,
+             B_groups,
+             W_groups):
+    """Assemble optimization results from all groups in the dataset.
+
+    Args:
+
+        component_group_index_pairings (dictionary):
+            A dictionary of size number of the components that
+            map component index (key) to group index (value).
+
+        H_groups (list):
+            A list of `H_group` obtained from optimization result
+            of a single group in the dataset.
+
+        B_groups (list):
+            A list of `B_group` obtained from optimization result
+            of a single group in the dataset.
+
+        W_groups (list):
+            A list of `W_group` obtained from optimization result
+            of a single group in the dataset.
+
+    Returns:
+         The optimization result of the dataset (i.e. H, W, B).
+    """
+
+    num_components = len(component_group_index_pairings)
+    group_index = component_group_index_pairings[0]
+
+    H = H_groups[group_index][0]
+    B = B_groups[group_index][0]
+    W = W_groups[group_index][0]
+
+    for component_index in range(1, num_components):
+        group_index = component_group_index_pairings[component_index]
+        H = jnp.vstack((H, H_groups[group_index][component_index]))
+        B = jnp.vstack((B, B_groups[group_index][component_index]))
+        W = jnp.vstack((W, W_groups[group_index][component_index]))
+
+    return H, W, B

@@ -6,14 +6,14 @@ class Parameters():
 
     def __init__(
             self,
-            max_iteration=1000,
-            min_loss=1e-4,
-            batch_size=10,
-            step_size=1e-3,
-            l1_weight=0.1,
-            log_every=10,
-            log_gradients=False,
-            random_seed=None):
+            max_iteration,
+            min_loss,
+            batch_size,
+            step_size,
+            l1_weight,
+            log_every,
+            log_gradients,
+            random_seed):
 
         self.max_iteration = max_iteration
         self.min_loss = min_loss

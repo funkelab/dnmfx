@@ -41,12 +41,15 @@ class Dataset():
             self.frame_roi = fg.Roi((0,) * self.num_spatial_dims,
                                     self.sequence.shape[0])
 
-        assert traces.shape[0] == self.num_components, \
-            "Traces and components disagree on number of components"
-        assert noises.shape[0] == self.num_frames, \
-            "Traces and noises have different numbers of frames"
-        assert background.shape == noises.shape[1:], \
-            "Background and noises have incompatible shapes"
+        if traces is not None:
+            assert traces.shape[0] == self.num_components, \
+                "Traces and components disagree on number of components"
+        if noises is not None:
+            assert noises.shape[0] == self.num_frames, \
+                "Traces and noises have different numbers of frames"
+        if background is not None and noises is not None:
+            assert background.shape == noises.shape[1:], \
+                "Background and noises have incompatible shapes"
         for i, bounding_box in enumerate(self.bounding_boxes):
             assert self.frame_roi.contains(bounding_box), \
                 f"Bounding box {bounding_box} of component {i} does not fit " \
@@ -103,9 +106,7 @@ class Dataset():
             component_sequence = np.stack([component] * self.num_frames)
             component_sequence *= trace[:, np.newaxis, np.newaxis]
 
-            print(bounding_box)
             slices = bounding_box.to_slices()
-            print(slices)
             sequence[(slice(None),) + slices] += component_sequence
 
         self.sequence_cache[(include_background, include_noises)] = sequence
