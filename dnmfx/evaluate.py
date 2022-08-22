@@ -1,7 +1,8 @@
 import numpy as np
+from .dataset import Dataset
 
 
-def evaluate(H, W, B, dataset):
+def evaluate(H, W, B, dataset, show_diff=False):
     """Get the number of component and component background ID mismatches and
     find the reconstruction error per component and per trace.
 
@@ -29,39 +30,58 @@ def evaluate(H, W, B, dataset):
             per time frame loss (value) that is the L2 distance between the
             ground truth (if known) and trace estimation from optmization.
     """
-
-    components = dataset.components
-    traces = dataset.traces
-    sequence = dataset.sequence
     num_components = dataset.num_components
     num_frames = dataset.num_frames
     bounding_boxes = dataset.bounding_boxes
-    background = dataset.background
-    noises = dataset.noises
-    num_component_pixels = components.size
-    num_image_pixels = background.size
+    ground_truth_sequence = dataset.sequence
 
-    reconstruction = np.stack([background] * num_frames)
-    reconstruction += noises
+    reconstructed_dataset = reconstruct_dataset(dataset, H, W, B)
+    reconstruction = reconstructed_dataset.render(include_noises=False)
+
+    mask = np.zeros(shape=(num_frames, *dataset.background.shape))
+
+    for index in range(num_components):
+        component_slices = bounding_boxes[index].to_slices()
+        mask[(slice(None),) + component_slices] = 1
+
+    diff_sequence = (reconstruction - ground_truth_sequence) * mask
+    loss = np.linalg.norm(diff_image) / np.count_nonzero(mask==1)
+
+    if show_diff:
+        return loss, diff_sequence
+    else:
+        return loss
+
+
+def reconstruct_dataset(dataset, H, W, B):
+
+    bounding_boxes = dataset.bounding_boxes
+    ground_truth_components = dataset.components
+    ground_truth_traces = dataset.traces
+    ground_truth_background = dataset.background
+    num_components = dataset.num_components
+
+    # create a reconstruction dataset
+    background = np.zeros_like(ground_truth_background)
+    components = np.zeros_like(ground_truth_components)
+    traces = np.zeros_like(ground_truth_traces)
 
     for i in range(num_components):
+
         component_slice = bounding_boxes[i].to_slices()
-        cell = W[i, :].reshape(-1, 1) @ H[i, :].reshape(1, -1) + B[i, :]
-        cell = cell.reshape(num_frames, *components[0].shape)
-        reconstruction[(slice(None),) + component_slice] = cell
+        component_shape = bounding_boxes[i].get_shape()
 
-    H = H.reshape(-1, *components[0].shape)
-    B = B.reshape(-1, *components[0].shape)
+        # add estimated background
+        background[component_slice] += B[i].reshape(component_shape)
 
-    component_loss = {i: float(np.linalg.norm(
-                               components[i] - H[i])/num_component_pixels)
-                      for i in range(num_components)}
-    trace_loss = {i: float(np.linalg.norm(
-                           traces[i] - W[i])/num_frames)
-                  for i in range(num_components)}
-    reconstruction_error = {t: float(np.linalg.norm(
-                    sequence[t, :, :] - reconstruction[t, :, :])
-                    / num_image_pixels)
-                    for t in range(num_frames)}
+        # add component
+        components[i] = H[i].reshape(component_shape)
 
-    return component_loss, trace_loss, reconstruction_error
+        # add traces
+        traces[i] = W[i]
+
+    return Dataset(
+            bounding_boxes,
+            background=background,
+            components=components,
+            traces=traces)

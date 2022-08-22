@@ -109,15 +109,8 @@ def dnmf(
                             B_logits)
 
             elif not parameters.log_gradients:
-                component_loss, trace_loss = evaluate(
-                                                sigmoid(H_logits),
-                                                sigmoid(B_logits),
-                                                sigmoid(W_logits),
-                                                dataset)
                 log.log_iteration(iteration,
-                                  average_loss,
-                                  component_loss,
-                                  trace_loss)
+                                  average_loss)
 
             if average_loss < parameters.min_loss:
                 print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
