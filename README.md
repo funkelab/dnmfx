@@ -9,6 +9,7 @@
       - [get `sequence`](#get-sequence)
       - [define `bounding_boxes`](#define-bounding_boxes)
       - [create a zarr container](#create-a-zarr-container)
+    - [Fit on the input data](#fit-on-the-input-data)
     - [Evaluate the fitting results](#evaluate-the-fitting-results)
   - [Example on synthetic data](#example-on-synthetic-data)
 ## About DNMFX
