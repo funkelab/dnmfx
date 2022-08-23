@@ -11,25 +11,34 @@ def evaluate(H, W, B, dataset, show_diff=False):
         H (array-like, shape `(k, w*h)`):
             The factorized matrix that contains all decomposed components.
 
-        W (array-like, shape `(t, k)`):
+        W (array-like, shape `(k, t)`):
             The factorized matrix that contains the traces of all decomposed
             components.
 
+        B (array-like, shape `(k, w*h)`):
+            The factorized matrix that contains the background of decomposed
+            components.
+
         dataset (:class: `Dataset`):
-            Dataset to be factorized.
+             Dataset to be fitted; should have a `sequence` dataset of shape
+            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
+            `(n, 2, d)`, where `n` is the number of components and `d` the
+            number of spatial dimensions. `component_locations` stores the
+            begin and end of each component, i.e., `component_locations[1, 0,
+            :]` is the begin of component `1` and `component_locations[1, 1,
+            :]` is its end.
 
     Returns:
 
-        component_loss (dictionary):
-            A dictionary that corresponds each component index (key) to its
-            per pixel loss (value) that is the L2 distance between the ground
-            truth (if known) and component estimation from optmization.
+        reconstruction_error (float):
+            The L2 distance between the input data and its reconstruction
+            average by the number of pixels.
 
-        trace_loss (dictionary):
-            A dictionary that corresponds each component index (key) to its
-            per time frame loss (value) that is the L2 distance between the
-            ground truth (if known) and trace estimation from optmization.
+        diff_sequence (:class: `numpy.array`):
+            The difference between input data and its reconstruction as a
+            sequence of shape `(num_frames, image_size, image_size)`.
     """
+
     num_components = dataset.num_components
     num_frames = dataset.num_frames
     bounding_boxes = dataset.bounding_boxes
@@ -45,7 +54,7 @@ def evaluate(H, W, B, dataset, show_diff=False):
         mask[(slice(None),) + component_slices] = 1
 
     diff_sequence = (reconstruction - ground_truth_sequence) * mask
-    loss = np.linalg.norm(diff_image) / np.count_nonzero(mask==1)
+    loss = np.linalg.norm(diff_sequence) / np.count_nonzero(mask == 1)
 
     if show_diff:
         return loss, diff_sequence
@@ -54,6 +63,36 @@ def evaluate(H, W, B, dataset, show_diff=False):
 
 
 def reconstruct_dataset(dataset, H, W, B):
+
+    """
+    Reconstruct input data from optimization results.
+
+    Args:
+
+        dataset (:class: `Dataset`):
+             Dataset to be fitted; should have a `sequence` dataset of shape
+            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
+            `(n, 2, d)`, where `n` is the number of components and `d` the
+            number of spatial dimensions. `component_locations` stores the
+            begin and end of each component, i.e., `component_locations[1, 0,
+            :]` is the begin of component `1` and `component_locations[1, 1,
+            :]` is its end.
+
+        H (array-like, shape `(k, w*h)`):
+            The factorized matrix that contains all decomposed components.
+
+        W (array-like, shape `(k, t)`):
+            The factorized matrix that contains the traces of all decomposed
+            components.
+
+        B (array-like, shape `(k, w*h)`):
+            The factorized matrix that contains the background of decomposed
+            components.
+
+    Returns:
+
+        Reconstructed dataset as :class: `Dataset`
+    """
 
     bounding_boxes = dataset.bounding_boxes
     ground_truth_components = dataset.components

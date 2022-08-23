@@ -21,11 +21,12 @@ def read_dataset(dataset_path):
     Returns:
 
         Dataset (:class: `Dataset`):
-            Dataset that contains `bounding_boxes` as :class: `funlib.geometry.Roi`,
-            components of shape `(k, s)` where `k` is the number of components, `s`
-            is the component size, `traces` of shape `(t, k)` where `t` is the number
-            of frames, `background` of shape `(image_size, image_size)`, `noises` of
-            shape `(t, image_size, image_size)`, and `sequence` dataset of shape
+            Dataset that contains `bounding_boxes` as :class:
+            `funlib.geometry.Roi`, components of shape `(k, s)` where `k` is
+            the number of components, `s` is the component size, `traces` of
+            shape `(t, k)` where `t` is the number of frames, `background` of
+            shape `(image_size, image_size)`, `noises` of shape `(t,
+                    image_size, image_size)`, and `sequence` dataset of shape
             `(t, [[z,], y,] x)`.
     """
 
@@ -73,11 +74,12 @@ def write_dataset(dataset, dataset_path):
     Args:
 
         Dataset (:class: `Dataset`):
-            Dataset that contains `bounding_boxes` as :class: `funlib.geometry.Roi`,
-            components of shape `(k, s)` where `k` is the number of components, `s`
-            is the component size, `traces` of shape `(t, k)` where `t` is the number
-            of frames, `background` of shape `(image_size, image_size)`, `noises` of
-            shape `(t, image_size, image_size)`, and `sequence` dataset of shape
+            Dataset that contains `bounding_boxes` as :class:
+            `funlib.geometry.Roi`, components of shape `(k, s)` where `k` is
+            the number of components, `s` is the component size, `traces` of
+            shape `(t, k)` where `t` is the number of frames, `background` of
+            shape `(image_size, image_size)`, `noises` of shape `(t,
+                    image_size, image_size)`, and `sequence` dataset of shape
             `(t, [[z,], y,] x)`.
 
         dataset_path (string):

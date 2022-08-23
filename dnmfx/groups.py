@@ -1,23 +1,28 @@
 import networkx as nx
 from .component_description import create_component_description
-from .io import read_dataset
 
 
 def get_groups(dataset):
     """Find all connected components in the data from component descriptions.
 
-     Args:
-
-        component_descriptions (list of :class:`ComponentDescription`):
-            The bounding boxes and indices of the components to estimate.
+    Args:
+        dataset (zarr container):
+            Dataset to be fitted; should have a `sequence` dataset of shape
+            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
+            `(n, 2, d)`, where `n` is the number of components and `d` the
+            number of spatial dimensions. `component_locations` stores the
+            begin and end of each component, i.e., `component_locations[1, 0,
+            :]` is the begin of component `1` and `component_locations[1, 1,
+            :]` is its end.
 
     Returns:
 
-        A list of lists of length the number of groups; each list contains a number
-        of :class:`ComponentDescription` that form a group.
+        A list of lists of length the number of groups; each list contains a
+        number of :class:`ComponentDescription` that form a group.
     """
 
-    component_descriptions = create_component_description(dataset.bounding_boxes)
+    component_descriptions = \
+        create_component_description(dataset.bounding_boxes)
 
     connection_dict = {
                 component_description:
@@ -29,7 +34,8 @@ def get_groups(dataset):
     G.add_nodes_from(connection_dict.keys())
 
     for component_description, overlaps in connection_dict.items():
-        connections = list(zip([component_description]*len(overlaps), overlaps))
+        connections = list(zip([component_description]*len(overlaps),
+                               overlaps))
         G.add_edges_from(connections)
 
     return [list(c) for c in nx.connected_components(G)]

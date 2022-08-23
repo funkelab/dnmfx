@@ -21,7 +21,7 @@ def l2_loss(
         H_logits (array-like, shape `(k, w*h)`):
              Array of the estimated components.
 
-        W_logits (array-like, shape `(t, k)`):
+        W_logits (array-like, shape `(k, t)`):
             Array of the activities of the estimated components.
 
         B_logits (array-like, shape `(k, w*h)`):
@@ -37,9 +37,23 @@ def l2_loss(
         frame_indices (list):
             A list of frame indices of length the batch size.
 
+        l1_weight (float):
+            Parameter for regularizing; how much penalty to give for component
+            and trace loss.
+
+        components (:class: `jax.numpy.array`):
+            Stores the value of components in an array-like data structure of
+            shape `(k, y, x)`, where `k` is the total number of components.
+
+        traces (:class: `jax.numpy.array`):
+            Stores the activity trace of each component across all time frames
+            available in an array-like data structure of shape `(k, t)`, where
+            t is the number of time frames, `k` the number of components.
+
     Returns:
 
-        L2 distance between x and reconstruction `H_logits`, `W_logits`, `B_logits`.
+        L2 distance between x and reconstruction `H_logits`, `W_logits`,
+        `B_logits`.
     """
 
     assert len(H_logits.shape) == 2
@@ -61,11 +75,11 @@ def l2_loss(
         i = component_description.index
         bb_i = component_description.bounding_box
         l1_loss = jnp.linalg.norm(
-                      components[i] -
-                      sigmoid(H_logits[i]).reshape(bb_i.shape), ord=1) + \
-                  jnp.linalg.norm(
-                      traces[i, frame_indices] -
-                      sigmoid(W_logits[i, frame_indices]), ord=1)
+                    components[i] -
+                    sigmoid(H_logits[i]).reshape(bb_i.shape), ord=1) + \
+            jnp.linalg.norm(
+                traces[i, frame_indices] -
+                sigmoid(W_logits[i, frame_indices]), ord=1)
     else:
         l1_loss = 0
 
@@ -74,11 +88,12 @@ def l2_loss(
 
 l2_loss_grad = jax.value_and_grad(l2_loss, argnums=(0, 1, 2))
 
+
 def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
     """Estimate reconstruction of a single component from array of estimated
-    components, traces, and backgrounds; suppose the component to be estimated is c
-    and denote every of its overlapping component as c', we reconstruct x_c as the
-    following:
+    components, traces, and backgrounds; suppose the component to be estimated
+    is c and denote every of its overlapping component as c', we reconstruct
+    x_c as the following:
 
                 x̂_c = B_c + W_c * H_c + Σ [B_c' + W_c' + H_c'].
 
@@ -133,6 +148,7 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         h = sigmoid(H_logits[slices_j])
         b = sigmoid(B_logits[slices_j])
 
-        x_hat = x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
+        x_hat = \
+            x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
 
     return x_hat

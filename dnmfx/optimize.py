@@ -1,15 +1,10 @@
-from .groups import get_groups
-from .initialize import initialize_normal
 from .log import Log
 from .loss import l2_loss_grad
 from .utils import sigmoid
-from .evaluate import evaluate
-from datetime import datetime
 from tqdm import tqdm
 import jax
 import jax.numpy as jnp
 import random
-from timeit import default_timer as timer
 
 
 def dnmf(
@@ -23,12 +18,16 @@ def dnmf(
 
     Args:
 
-        sequence (array-like, shape `(t, [z,] y, x)`):
-            The raw data (usually referred to as 'X') to factorize into `X =
-            H@W`, where `H` is an array of the estimated components and `W` is
-            their activity over time.
+       dataset (zarr container):
+            Dataset to be fitted; should have a `sequence` dataset of shape
+            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
+            `(n, 2, d)`, where `n` is the number of components and `d` the
+            number of spatial dimensions. `component_locations` stores the
+            begin and end of each component, i.e., `component_locations[1, 0,
+            :]` is the begin of component `1` and `component_locations[1, 1,
+            :]` is its end.
 
-        component_descriptions (list of :class:`ComponentDescription`):
+       component_descriptions (list of :class:`ComponentDescription`):
             The bounding boxes and indices of the components to estimate.
 
         parameters (:class:`Parameters`):
@@ -38,7 +37,8 @@ def dnmf(
             Array of the estimated components to be optimized.
 
         W_logits (array-like, shape `(t, k)`):
-            Array of the activities of the estimated components to be optimized.
+            Array of the activities of the estimated components to be
+            optimized.
 
         B_logits (array-like, shape `(k, w*h)`):
             Array of the background of the estimate components to be optimized.
@@ -91,8 +91,10 @@ def dnmf(
 
         if iteration % parameters.log_every == 0:
 
-            if iteration == 0: average_loss = loss
-            else: average_loss = float(aggregate_loss/parameters.log_every)
+            if iteration == 0:
+                average_loss = loss
+            else:
+                average_loss = float(aggregate_loss/parameters.log_every)
 
             aggregate_loss = 0
 
@@ -113,7 +115,8 @@ def dnmf(
                                   average_loss)
 
             if average_loss < parameters.min_loss:
-                print(f"Optimization converged ({average_loss}<{parameters.min_loss})")
+                print(f"Optimization converged: \
+                        {average_loss}<{parameters.min_loss}")
                 break
 
         # update current estimate
@@ -142,8 +145,8 @@ def get_x(sequence, frames, bounding_box):
             A list of frame indices of length the batch size.
 
         bounding_box (:class: `funlib.geometry.Roi`):
-            Bounding box of :class: `funlib.geometry.Roi` that defines a rectangular
-            region.
+            Bounding box of :class: `funlib.geometry.Roi` that defines a
+            rectangular region.
 
     Returns:
          A region defined by the bounding box from the given sequence.

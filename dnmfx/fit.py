@@ -1,10 +1,9 @@
-from datetime import datetime
-import jax.numpy as jnp
+from .groups import get_groups
+from .initialize import initialize_normal
 from .optimize import dnmf
 from .parameters import Parameters
-from .groups import get_groups
-from .io import read_dataset
-from .initialize import initialize_normal
+from datetime import datetime
+import jax.numpy as jnp
 
 
 def fit(
@@ -17,19 +16,21 @@ def fit(
         log_every=100,
         log_gradients=False,
         random_seed=None):
-    """Use distributed NMF to estimate the components and traces for a dataset
+
+    """
+    Use distributed NMF to estimate the components and traces for a dataset
     given as a zarr container.
 
     Args:
 
-        dataset_path (string):
-            The path to the zarr container containing the dataset. Should have
-            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
-            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
-            the number of components and `d` the number of spatial dimensions.
-            `component_locations` stores the begin and end of each component,
-            i.e., `component_locations[1, 0, :]` is the begin of component `1`
-            and `component_locations[1, 1, :]` is its end.
+        dataset (zarr container):
+            Dataset to be fitted; should have a `sequence` dataset of shape
+            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
+            `(n, 2, d)`, where `n` is the number of components and `d` the
+            number of spatial dimensions. `component_locations` stores the
+            begin and end of each component, i.e., `component_locations[1, 0,
+            :]` is the begin of component `1` and `component_locations[1, 1,
+            :]` is its end.
 
         max_iteration (int):
             The maximum number of iterations to optimize for.
@@ -205,4 +206,4 @@ def assemble(component_group_index_pairings,
         B = jnp.vstack((B, B_groups[group_index][component_index]))
         W = jnp.vstack((W, W_groups[group_index][component_index]))
 
-    return H, W, B
+   return H, W, B
