@@ -54,37 +54,26 @@ class TestCaseA(unittest.TestCase):
 
 
     def test_case_B(self):
-
         """
-        Check if component IDs between reconstruction and ground truth are exact
-        matches
+        Checking if fitting converges on toy data.
         """
-        cell_centers = [(32, 32), (180, 180)]
-        image_size = 256
-        cell_size = 64
-        num_frames = 100
+        cell_centers = [(32, 32)]
         toy_data = self._generate_toy_data(
                            cell_centers,
-                           image_size,
-                           cell_size,
-                           num_frames)
+                           image_size=256,
+                           cell_size=16,
+                           num_frames=100)
 
-        max_iteration = 1000000
-        batch_size = 10
-        log_every = 100
-        log_gradients = False
-        H, W, B, log = self._fit(toy_data,
-                                 max_iteration,
-                                 batch_size,
-                                 log_every,
-                                 log_gradients)
-
-        mispairings, _, _ = evaluate(H, B, W, toy_data)
-        print(f"mispairings: {mispairings}")
-        assert len(mispairings) == 0, \
-                f"""The number of mispaired component IDs is {len(mispairings)}\n
-                  The total number of components is {2*len(cell_centers)}"""
-
+        H, W, B, log = fit(toy_data,
+                           max_iteration=100000,
+                           min_loss=1e-1,
+                           batch_size=10,
+                           log_every=100,
+                           log_gradients=False)
+        print(f"log: {log}")
+        last_iter_log = log[0].iteration_logs[-1]
+        assert last_iter_log.iteration < 100000-1, \
+            "Fitting should converges with the max num of iterations."
 
     def _generate_toy_data(self,
                            cell_centers,
