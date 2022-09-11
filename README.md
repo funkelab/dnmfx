@@ -17,7 +17,7 @@ DNMFX is a distributed algorithm based on stochastic gradient descent non-negati
  
 $$X[t] ≈ ∑_kW[t, k]H[k] + B[k] = \hat{X}[t]$$
 
-where $$X$$ is input imaging data and $$\hat{X}$$ is its reconstruction; $$k$$ is the (cell) component index; $$t$$ is the time frame index.
+where $X$ is input imaging data and $\hat{X}$ is its reconstruction; $k$ is the (cell) component index; $t$ is the time frame index.
 
 ![pipeline](docs/dnmfx.png)
 
