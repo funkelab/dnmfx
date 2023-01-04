@@ -21,8 +21,8 @@ def nmf_loss(
         frame_indices)
 
     regularizer_loss = l1_loss(
-        H_logits,
-        W_logits)
+        H_logits[component_description.index],
+        W_logits[component_description.index])
 
     return reconstruction_loss + l1_weight * regularizer_loss
 
