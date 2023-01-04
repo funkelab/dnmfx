@@ -3,8 +3,8 @@ import jax
 
 
 def initialize_normal(num_components, num_frames, component_size, random_seed):
-    """Initialize factors H, B, W with random numbers from a normal distribution to
-    be optimized with distributed NMF, such that
+    """Initialize factors H, B, W with random numbers from a normal
+    distribution to be optimized with distributed NMF, such that
 
                     X[t,s] ≈ W[t,n]@H[n,s] + 1[t,n]@B[n,s]
                            = X_hat[t,s].

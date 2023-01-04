@@ -1,6 +1,8 @@
 import jax.numpy as jnp
 
-log1pexp = lambda x: jnp.log1p(jnp.exp(x))
+
+def log1pexp(x):
+    return jnp.log1p(jnp.exp(x))
 
 
 def sigmoid(Z):

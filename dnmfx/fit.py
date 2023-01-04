@@ -107,8 +107,8 @@ def fit(
 def fit_group(component_descriptions,
               dataset,
               parameters):
-    """Use NMF to estimate the components and traces for a group from the dataset
-    given as a list of :class: `ComponentDescription`
+    """Use NMF to estimate the components and traces for a group from the
+    dataset given as a list of :class: `ComponentDescription`
 
     Args:
 
