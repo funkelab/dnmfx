@@ -1,5 +1,5 @@
 from .log import Log
-from .loss import l2_loss_grad
+from .loss import nmf_loss_grad
 from .utils import sigmoid
 from tqdm import tqdm
 import jax
@@ -44,14 +44,13 @@ def dnmf(
     """
 
     log = Log()
-    l2_loss_grad_jit = jax.jit(l2_loss_grad,
-                               static_argnums=(4,))
+    nmf_loss_grad_jit = jax.jit(
+        nmf_loss_grad,
+        static_argnums=(4,))
     update_jit = jax.jit(update)
     aggregate_loss = 0
 
     sequence = dataset.sequence
-    components = jnp.array(dataset.components)
-    traces = jnp.array(dataset.traces)
 
     for iteration in tqdm(range(parameters.max_iteration)):
 
@@ -71,16 +70,14 @@ def dnmf(
 
         # compute the current loss and gradient
         loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
-            l2_loss_grad_jit(
+            nmf_loss_grad_jit(
                 H_logits,
                 W_logits,
                 B_logits,
                 x,
                 component_description,
                 frame_indices,
-                parameters.l1_weight,
-                components,
-                traces)
+                parameters.l1_weight)
 
         aggregate_loss += loss
 

@@ -3,16 +3,40 @@ import jax
 import jax.numpy as jnp
 
 
-def l2_loss(
+def nmf_loss(
         H_logits,
         W_logits,
         B_logits,
         x,
         component_description,
         frame_indices,
-        l1_weight,
-        components,
-        traces):
+        l1_weight):
+
+    reconstruction_loss = l2_loss(
+        H_logits,
+        W_logits,
+        B_logits,
+        x,
+        component_description,
+        frame_indices)
+
+    regularizer_loss = l1_loss(
+        H_logits,
+        W_logits)
+
+    return reconstruction_loss + l1_weight * regularizer_loss
+
+
+nmf_loss_grad = jax.value_and_grad(nmf_loss, argnums=(0, 1, 2))
+
+
+def l2_loss(
+        H_logits,
+        W_logits,
+        B_logits,
+        x,
+        component_description,
+        frame_indices):
     """Compute the L2 distance between data from a single component and
     reconstruction from optimization results.
 
@@ -37,19 +61,6 @@ def l2_loss(
         frame_indices (list):
             A list of frame indices of length the batch size.
 
-        l1_weight (float):
-            Parameter for regularizing; how much penalty to give for component
-            and trace loss.
-
-        components (:class: `jax.numpy.array`):
-            Stores the value of components in an array-like data structure of
-            shape `(k, y, x)`, where `k` is the total number of components.
-
-        traces (:class: `jax.numpy.array`):
-            Stores the activity trace of each component across all time frames
-            available in an array-like data structure of shape `(k, t)`, where
-            t is the number of time frames, `k` the number of components.
-
     Returns:
 
         L2 distance between x and reconstruction `H_logits`, `W_logits`,
@@ -70,23 +81,20 @@ def l2_loss(
 
     l2_loss = jnp.linalg.norm(x - x_hat)
 
-    if components is not None and traces is not None:
-
-        i = component_description.index
-        bb_i = component_description.bounding_box
-        l1_loss = jnp.linalg.norm(
-                    components[i] -
-                    sigmoid(H_logits[i]).reshape(bb_i.shape), ord=1) + \
-            jnp.linalg.norm(
-                traces[i, frame_indices] -
-                sigmoid(W_logits[i, frame_indices]), ord=1)
-    else:
-        l1_loss = 0
-
-    return l2_loss + l1_weight * l1_loss
+    return l2_loss
 
 
-l2_loss_grad = jax.value_and_grad(l2_loss, argnums=(0, 1, 2))
+def l1_loss(H_logits, W_logits):
+
+    l1_loss_H = jnp.linalg.norm(
+        sigmoid(H_logits),
+        ord=1)
+
+    l1_loss_W = jnp.linalg.norm(
+        sigmoid(W_logits),
+        ord=1)
+
+    return l1_loss_H + l1_loss_W
 
 
 def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
