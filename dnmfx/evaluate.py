@@ -20,13 +20,8 @@ def evaluate(H, W, B, dataset, show_diff=False):
             components.
 
         dataset (:class: `Dataset`):
-             Dataset to be fitted; should have a `sequence` dataset of shape
-            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
-            `(n, 2, d)`, where `n` is the number of components and `d` the
-            number of spatial dimensions. `component_locations` stores the
-            begin and end of each component, i.e., `component_locations[1, 0,
-            :]` is the begin of component `1` and `component_locations[1, 1,
-            :]` is its end.
+            Dataset to be fitted; should have a `sequence` array of shape `(t,
+            [[z,], y,] x)` and `bounding_boxes` of the components.
 
     Returns:
 
@@ -63,20 +58,18 @@ def evaluate(H, W, B, dataset, show_diff=False):
 
 
 def reconstruct_dataset(dataset, H, W, B):
-
-    """
-    Reconstruct input data from optimization results.
+    """Reconstruct input data from optimization results.
 
     Args:
 
         dataset (:class: `Dataset`):
-             Dataset to be fitted; should have a `sequence` dataset of shape
-            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
-            `(n, 2, d)`, where `n` is the number of components and `d` the
-            number of spatial dimensions. `component_locations` stores the
-            begin and end of each component, i.e., `component_locations[1, 0,
-            :]` is the begin of component `1` and `component_locations[1, 1,
-            :]` is its end.
+            Dataset to be fitted; should have a `sequence` array of shape `(t,
+            [[z,], y,] x)` and a `component_locations` array of shape `(n, 2,
+            d)`, where `n` is the number of components and `d` the number of
+            spatial dimensions. `component_locations` stores the begin and end
+            of each component, i.e., `component_locations[1, 0, :]` is the
+            begin of component `1` and `component_locations[1, 1, :]` is its
+            end.
 
         H (array-like, shape `(k, w*h)`):
             The factorized matrix that contains all decomposed components.

@@ -23,14 +23,9 @@ def fit(
 
     Args:
 
-        dataset (zarr container):
-            Dataset to be fitted; should have a `sequence` dataset of shape
-            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
-            `(n, 2, d)`, where `n` is the number of components and `d` the
-            number of spatial dimensions. `component_locations` stores the
-            begin and end of each component, i.e., `component_locations[1, 0,
-            :]` is the begin of component `1` and `component_locations[1, 1,
-            :]` is its end.
+        dataset (:class:`Dataset`):
+            Dataset to be fitted; should have a `sequence` array of shape `(t,
+            [[z,], y,] x)` and `bounding_boxes` of the components.
 
         max_iteration (int):
             The maximum number of iterations to optimize for.
@@ -118,12 +113,8 @@ def fit_group(component_descriptions,
 
         dataset_path (string):
             The path to the zarr container containing the dataset. Should have
-            a `sequence` dataset of shape `(t, [[z,], y,] x)` and a
-            `component_locations` dataset of shape `(n, 2, d)`, where `n` is
-            the number of components and `d` the number of spatial dimensions.
-            `component_locations` stores the begin and end of each component,
-            i.e., `component_locations[1, 0, :]` is the begin of component `1`
-            and `component_locations[1, 1, :]` is its end.
+            a `sequence` dataset of shape `(t, [[z,], y,] x)` and
+            `bounding_boxes` of the components.
 
         parameters (:class: `Parameters`):
             Parameters to control the optimization.

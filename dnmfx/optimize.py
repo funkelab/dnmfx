@@ -18,14 +18,9 @@ def dnmf(
 
     Args:
 
-       dataset (zarr container):
-            Dataset to be fitted; should have a `sequence` dataset of shape
-            `(t, [[z,], y,] x)` and a `component_locations` dataset of shape
-            `(n, 2, d)`, where `n` is the number of components and `d` the
-            number of spatial dimensions. `component_locations` stores the
-            begin and end of each component, i.e., `component_locations[1, 0,
-            :]` is the begin of component `1` and `component_locations[1, 1,
-            :]` is its end.
+       dataset (:class:`Dataset`):
+            Dataset to be fitted; should have a `sequence` array of shape `(t,
+            [[z,], y,] x)`.
 
        component_descriptions (list of :class:`ComponentDescription`):
             The bounding boxes and indices of the components to estimate.
