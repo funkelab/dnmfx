@@ -52,7 +52,8 @@ def dnmf(
     sequence = jnp.array(dataset.sequence)
     frames = list(range(sequence.shape[0]))
 
-    for iteration in tqdm(range(parameters.max_iteration)):
+    progress = tqdm(range(parameters.max_iteration))
+    for iteration in progress:
 
         # pick a random subset of components
         random.seed(parameters.random_seed + iteration)
@@ -86,6 +87,8 @@ def dnmf(
                 W_index_maps,
                 frame_indices,
                 parameters.l1_weight)
+
+        progress.set_description("batch loss=%.3f" % loss)
 
         aggregate_loss += loss
 
