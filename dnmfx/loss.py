@@ -8,7 +8,8 @@ def nmf_loss(
         W_logits,
         B_logits,
         x,
-        component_description,
+        H_index_map,
+        W_index_map,
         frame_indices,
         l1_weight):
 
@@ -17,12 +18,14 @@ def nmf_loss(
         W_logits,
         B_logits,
         x,
-        component_description,
+        H_index_map,
+        W_index_map,
         frame_indices)
 
+    component_index = W_index_map[0]
     regularizer_loss = l1_loss(
-        H_logits[component_description.index],
-        W_logits[component_description.index])
+        H_logits[component_index],
+        W_logits[component_index])
 
     return reconstruction_loss + l1_weight * regularizer_loss
 
@@ -35,7 +38,8 @@ def l2_loss(
         W_logits,
         B_logits,
         x,
-        component_description,
+        H_index_map,
+        W_index_map,
         frame_indices):
     """Compute the L2 distance between data from a single component and
     reconstruction from optimization results.
@@ -54,9 +58,13 @@ def l2_loss(
         x (array-like, shape `(w, h)`):
             Data from a single component.
 
-        component_description (:class: `ComponentDescription`):
-            The bounding box, index, and overlapping components of the given
-            component `x`.
+        H_index_map (array-like, shape `(n, w*h)`):
+            The indices into the H array that make up this component, including
+            `n-1` overlapping components.
+
+        W_index_map (array-like, shape `(n,)`):
+            The indices into the W array that correspond to the components in
+            `H_index_map`.
 
         frame_indices (list):
             A list of frame indices of length the batch size.
@@ -76,7 +84,8 @@ def l2_loss(
             H_logits,
             W_logits,
             B_logits,
-            component_description,
+            H_index_map,
+            W_index_map,
             frame_indices)
 
     l2_loss = jnp.linalg.norm(x - x_hat)
@@ -97,7 +106,7 @@ def l1_loss(H_logits, W_logits):
     return l1_loss_H + l1_loss_W
 
 
-def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
+def get_x_hat(H_logits, W_logits, B_logits, H_index_map, W_index_map, frames):
     """Estimate reconstruction of a single component from array of estimated
     components, traces, and backgrounds; suppose the component to be estimated
     is c and denote every of its overlapping component as c', we reconstruct
@@ -116,9 +125,13 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         B_logits (array-like, shape `(k, w*h)`):
             Array of the background of the estimate components.
 
-        component_description (:class: `ComponentDescription`):
-            The bounding box, index, and overlapping components of some
-            component `x`.
+        H_index_map (array-like, shape `(n, w*h)`):
+            The indices into the H array that make up this component, including
+            `n-1` overlapping components.
+
+        W_index_map (array-like, shape `(n,)`):
+            The indices into the W array that correspond to the components in
+            `H_index_map`.
 
         frames (list):
             A list of frame indices of length the batch size.
@@ -128,35 +141,25 @@ def get_x_hat(H_logits, W_logits, B_logits, component_description, frames):
         Reconstructed x̂_c.
     """
 
-    i = component_description.index
-    bb_i = component_description.bounding_box
-    w = sigmoid(W_logits[i, frames])
-    h = sigmoid(H_logits[i])
-    b = sigmoid(B_logits[i])
+    def get_component(H_indices, W_index):
 
-    x_hat = jnp.outer(w, h).reshape(-1, *h.shape) + b
-    x_hat = x_hat.reshape(-1, *bb_i.shape)
+        h = sigmoid(
+            H_logits.at[W_index, H_indices].get(
+                mode='fill',
+                fill_value=-1e10  # 0 after sigmoid
+            )
+        )
+        b = sigmoid(
+            B_logits.at[W_index, H_indices].get(
+                mode='fill',
+                fill_value=-1e10  # 0 after sigmoid
+            )
+        )
+        w = sigmoid(W_logits[W_index, frames])
 
-    for overlap in component_description.overlapping_components:
+        return jnp.outer(w, h) + b.flatten()
 
-        j = overlap.index
-        bb_j = overlap.bounding_box
-
-        intersection = bb_i.intersect(bb_j)
-        intersection_in_c_i = intersection - bb_i.get_begin()
-        intersection_in_c_j = intersection - bb_j.get_begin()
-
-        slices_i = (slice(None),) + intersection_in_c_i.to_slices()
-        slices_j = (j,) + intersection_in_c_j.to_slices()
-
-        H_logits = H_logits.reshape(-1, *bb_i.shape)
-        B_logits = B_logits.reshape(-1, *bb_i.shape)
-
-        w = sigmoid(W_logits[j, frames])
-        h = sigmoid(H_logits[slices_j])
-        b = sigmoid(B_logits[slices_j])
-
-        x_hat = \
-            x_hat.at[slices_i].add(jnp.outer(w, h).reshape(-1, *h.shape) + b)
+    components = jax.vmap(get_component)(H_index_map, W_index_map)
+    x_hat = components.sum(axis=0)
 
     return x_hat

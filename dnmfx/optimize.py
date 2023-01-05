@@ -44,9 +44,7 @@ def dnmf(
     """
 
     log = Log()
-    nmf_loss_grad_jit = jax.jit(
-        nmf_loss_grad,
-        static_argnums=(4,))
+    nmf_loss_grad_jit = jax.jit(nmf_loss_grad)
     update_jit = jax.jit(update)
     aggregate_loss = 0
 
@@ -75,7 +73,8 @@ def dnmf(
                 W_logits,
                 B_logits,
                 x,
-                component_description,
+                component_description.H_index_map,
+                component_description.W_index_map,
                 frame_indices,
                 parameters.l1_weight)
 
@@ -146,7 +145,7 @@ def get_x(sequence, frames, bounding_box):
 
     slices = bounding_box.to_slices()
     x = jnp.array([sequence[(t,) + slices] for t in frames])
-    x = x.reshape(-1, *bounding_box.shape)
+    x = x.reshape(len(frames), -1)
 
     return x
 

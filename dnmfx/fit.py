@@ -126,7 +126,10 @@ def fit_group(component_descriptions,
         :class: `Log`.
     """
 
+    num_components = len(component_descriptions)
     component_size = None
+    component_shape = None
+    max_overlaps = 0
     for description in component_descriptions:
         size = description.bounding_box.get_size()
         if component_size is not None:
@@ -134,6 +137,23 @@ def fit_group(component_descriptions,
                     "Only components of the same size are supported for now"
         else:
             component_size = size
+            component_shape = description.bounding_box.shape
+
+        overlaps = len(description.overlapping_components)
+        max_overlaps = max(overlaps, max_overlaps)
+
+    print(f"Maximum number of overlapping components: {max_overlaps}")
+
+    print("Creating H index maps for each component...")
+    H_indices = jnp.arange(component_size).reshape(*component_shape)
+    for description in component_descriptions:
+        H_index_map, W_index_map = create_index_maps(
+            description,
+            max_overlaps,
+            H_indices)
+        description.H_index_map = H_index_map
+        description.W_index_map = W_index_map
+    print("...done.")
 
     sequence = dataset.sequence
     num_frames = sequence.shape[0]
@@ -198,3 +218,41 @@ def assemble(component_group_index_pairings,
         W = jnp.vstack((W, W_groups[group_index][component_index]))
 
     return H, W, B
+
+
+def create_index_maps(component_description, max_overlaps, H_indices):
+
+    NO_VALUE = jnp.iinfo(jnp.int32).max
+
+    bb_i = component_description.bounding_box
+
+    # default indices map to NO_VALUE
+    H_index_map = jnp.ones((max_overlaps + 1,) + bb_i.shape, dtype=jnp.int32)
+    H_index_map = H_index_map * NO_VALUE
+
+    W_index_map = [0] * (max_overlaps + 1)
+
+    all_components = \
+        [component_description] + \
+        component_description.overlapping_components
+
+    for c, component in enumerate(all_components):
+
+        j = component.index
+        bb_j = component.bounding_box
+
+        intersection = bb_i.intersect(bb_j)
+        intersection_in_c_i = intersection - bb_i.get_begin()
+        intersection_in_c_j = intersection - bb_j.get_begin()
+
+        slices_i = intersection_in_c_i.to_slices()
+        slices_j = intersection_in_c_j.to_slices()
+
+        indices_j = H_indices[slices_j]
+        H_index_map = H_index_map.at[(c,) + slices_i].set(indices_j)
+        W_index_map[c] = j
+
+    H_index_map = H_index_map.reshape(max_overlaps + 1, -1)
+    W_index_map = jnp.array(W_index_map, dtype=jnp.int32)
+
+    return H_index_map, W_index_map
