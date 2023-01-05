@@ -10,7 +10,7 @@ def nmf_loss(
         xs,
         H_index_maps,
         W_index_maps,
-        frame_indices,
+        frames,
         l1_weight):
 
     vmap_loss = jax.vmap(
@@ -25,7 +25,7 @@ def nmf_loss(
         xs,
         H_index_maps,
         W_index_maps,
-        frame_indices)
+        frames)
 
     reconstruction_loss = jnp.mean(reconstruction_losses)
 
@@ -47,7 +47,7 @@ def l2_loss(
         x,
         H_index_map,
         W_index_map,
-        frame_indices):
+        frames):
     """Compute the L2 distance between data from a single component and
     reconstruction from optimization results.
 
@@ -73,7 +73,7 @@ def l2_loss(
             The indices into the W array that correspond to the components in
             `H_index_map`.
 
-        frame_indices (list):
+        frames (list):
             A list of frame indices of length the batch size.
 
     Returns:
@@ -93,7 +93,7 @@ def l2_loss(
             B_logits,
             H_index_map,
             W_index_map,
-            frame_indices)
+            frames)
 
     l2_loss = jnp.linalg.norm(x - x_hat)
 
