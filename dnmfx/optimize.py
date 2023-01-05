@@ -5,6 +5,7 @@ from tqdm import tqdm
 import jax
 import jax.numpy as jnp
 import random
+import time
 
 
 def dnmf(
@@ -49,22 +50,42 @@ def dnmf(
     aggregate_loss = 0
 
     sequence = dataset.sequence
+    frames = list(range(sequence.shape[0]))
 
     for iteration in tqdm(range(parameters.max_iteration)):
 
-        # pick a random component
-        random.seed(parameters.random_seed + iteration)
-        component_description = random.sample(component_descriptions, 1)[0]
-        component_bounding_box = component_description.bounding_box
+        start = time.time()
 
-        num_frames = sequence.shape[0]
+        # pick a random subset of components
+        random.seed(parameters.random_seed + iteration)
+        batch_components = random.sample(
+            component_descriptions,
+            min(32, len(component_descriptions)))
+
         # pick a random subset of frames
-        frame_indices = tuple(random.sample(
-            list(range(num_frames)),
-            parameters.batch_size))
+        frame_indices = tuple(random.sample(frames, parameters.batch_size))
+
+        print("Picked batch in %.3fs" % (time.time() - start))
+
+        start = time.time()
 
         # gather the sequence data for those components/frames
-        x = get_x(sequence, frame_indices, component_bounding_box)
+        xs = jnp.array([
+            get_x(sequence, frame_indices, c.bounding_box)
+            for c in batch_components
+        ])
+
+        print("Gathered xs in %.3fs" % (time.time() - start))
+
+        start = time.time()
+
+        # gather the H and W index maps
+        H_index_maps = jnp.array([c.H_index_map for c in batch_components])
+        W_index_maps = jnp.array([c.W_index_map for c in batch_components])
+
+        print("Gathered H/W index maps in %.3fs" % (time.time() - start))
+
+        start = time.time()
 
         # compute the current loss and gradient
         loss, (grad_H_logits, grad_W_logits, grad_B_logits) = \
@@ -72,11 +93,13 @@ def dnmf(
                 H_logits,
                 W_logits,
                 B_logits,
-                x,
-                component_description.H_index_map,
-                component_description.W_index_map,
+                xs,
+                H_index_maps,
+                W_index_maps,
                 frame_indices,
                 parameters.l1_weight)
+
+        print("Got loss and gradients in %.3fs" % (time.time() - start))
 
         aggregate_loss += loss
 
@@ -110,6 +133,8 @@ def dnmf(
                         {average_loss}<{parameters.min_loss}")
                 break
 
+        start = time.time()
+
         # update current estimate
         H_logits, W_logits, B_logits = update_jit(
             H_logits,
@@ -119,6 +144,8 @@ def dnmf(
             grad_W_logits,
             grad_B_logits,
             parameters.step_size)
+
+        print("Updated H/W/B in %.3fs" % (time.time() - start))
 
     return sigmoid(H_logits), sigmoid(W_logits), sigmoid(B_logits), log
 

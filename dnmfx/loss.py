@@ -7,25 +7,32 @@ def nmf_loss(
         H_logits,
         W_logits,
         B_logits,
-        x,
-        H_index_map,
-        W_index_map,
+        xs,
+        H_index_maps,
+        W_index_maps,
         frame_indices,
         l1_weight):
 
-    reconstruction_loss = l2_loss(
+    vmap_loss = jax.vmap(
+        l2_loss,
+        in_axes=(None, None, None, 0, 0, 0, None)
+    )
+
+    reconstruction_losses = vmap_loss(
         H_logits,
         W_logits,
         B_logits,
-        x,
-        H_index_map,
-        W_index_map,
+        xs,
+        H_index_maps,
+        W_index_maps,
         frame_indices)
 
-    component_index = W_index_map[0]
+    reconstruction_loss = jnp.mean(reconstruction_losses)
+
+    component_indices = W_index_maps[:, 0]
     regularizer_loss = l1_loss(
-        H_logits[component_index],
-        W_logits[component_index])
+        H_logits[component_indices],
+        W_logits[component_indices])
 
     return reconstruction_loss + l1_weight * regularizer_loss
 
