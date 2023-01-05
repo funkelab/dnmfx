@@ -10,7 +10,8 @@ def fit(
         dataset,
         max_iteration=10000,
         min_loss=1e-4,
-        batch_size=10,
+        batch_frames=16,
+        batch_components=32,
         step_size=1e-1,
         l1_weight=0,
         log_every=100,
@@ -33,9 +34,13 @@ def fit(
         min_loss (float):
             The loss value at which to stop the optimization.
 
-        batch_size (int):
+        batch_frames (int):
             The number of frames to consider at once for each component during
             the stochastic gradient estimation.
+
+        batch_components (int):
+            The number of components to consider at once during the stochastic
+            gradient estimation.
 
         step_size (float):
             The size of the gradient updates.
@@ -65,7 +70,8 @@ def fit(
 
     parameters = Parameters(max_iteration,
                             min_loss,
-                            batch_size,
+                            batch_frames,
+                            batch_components,
                             step_size,
                             l1_weight,
                             log_every,

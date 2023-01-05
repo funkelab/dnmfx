@@ -8,7 +8,8 @@ class Parameters():
             self,
             max_iteration,
             min_loss,
-            batch_size,
+            batch_frames,
+            batch_components,
             step_size,
             l1_weight,
             log_every,
@@ -17,7 +18,8 @@ class Parameters():
 
         self.max_iteration = max_iteration
         self.min_loss = min_loss
-        self.batch_size = batch_size
+        self.batch_frames = batch_frames
+        self.batch_components = batch_components
         self.step_size = step_size
         self.l1_weight = l1_weight
         self.log_every = log_every
@@ -27,7 +29,8 @@ class Parameters():
     def tree_flatten(self):
         children = (self.max_iteration,
                     self.min_loss,
-                    self.batch_size,
+                    self.batch_frames,
+                    self.batch_components,
                     self.step_size,
                     self.l1_weight,
                     self.log_every,

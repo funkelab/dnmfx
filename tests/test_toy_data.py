@@ -26,7 +26,8 @@ class TestCaseA(unittest.TestCase):
 
         H, W, B, log = fit(toy_data,
                            max_iteration=1,
-                           batch_size=1,
+                           batch_frames=1,
+                           batch_components=1,
                            log_every=2,
                            log_gradients=True)
 
@@ -67,7 +68,8 @@ class TestCaseA(unittest.TestCase):
         H, W, B, log = fit(toy_data,
                            max_iteration=100000,
                            min_loss=1e-1,
-                           batch_size=10,
+                           batch_frames=10,
+                           batch_components=1,
                            log_every=100,
                            log_gradients=False)
         print(f"log: {log}")

@@ -59,11 +59,11 @@ def dnmf(
         random.seed(parameters.random_seed + iteration)
         batch_components = random.sample(
             component_descriptions,
-            min(32, len(component_descriptions)))
+            min(parameters.batch_components, len(component_descriptions)))
 
         # pick a random subset of frames
         frame_indices = jnp.array(
-            random.sample(frames, parameters.batch_size),
+            random.sample(frames, min(parameters.batch_frames, len(frames))),
             dtype=jnp.int32)
 
         # gather the sequence data for those components/frames
