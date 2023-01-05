@@ -142,6 +142,7 @@ def fit_group(component_descriptions,
         overlaps = len(description.overlapping_components)
         max_overlaps = max(overlaps, max_overlaps)
 
+    print(f"Found {num_components} components of size {component_shape}")
     print(f"Maximum number of overlapping components: {max_overlaps}")
 
     print("Creating H index maps for each component...")
